@@ -16,7 +16,7 @@ export default function Home() {
         />
 
         <h1 className="mt-6 text-3xl md:text-4xl font-extrabold text-slate-800 text-center">
-          Kiosko Municipal
+          Kiosko Multimedia
         </h1>
         <p className="mt-2 text-slate-500 text-lg text-center">
           Seleccione una opción
@@ -58,7 +58,7 @@ export default function Home() {
             "
           >
             <span className="text-5xl">🔍</span>
-            <span>Búsqueda</span>
+            <span>Búsqueda Expedientes</span>
           </button>
 
           {/* BOTÓN 2 */}
@@ -84,7 +84,7 @@ export default function Home() {
           >
             <span className="text-5xl">💳</span>
             <span className="text-center leading-tight">
-              Expedientes<br />y Pagos
+              Pagos en Línea
             </span>
           </button>
 
