@@ -53,7 +53,7 @@ export default function Dashboard() {
             className="h-24 rounded-2xl bg-blue-600 text-white font-extrabold text-xl shadow-lg active:scale-[0.98] active:bg-blue-800 transition flex items-center px-6"
           >
             <span className="text-3xl">💳</span>
-            <span className="ml-4 flex-1 text-left">Arbitrios Municipales</span>
+            <span className="ml-4 flex-1 text-left">Arbitrios Municipales owo</span>
             <span className="text-3xl opacity-80">›</span>
           </button>
 
