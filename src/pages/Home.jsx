@@ -58,7 +58,7 @@ export default function Home() {
             "
           >
             <span className="text-5xl">🔍</span>
-            <span>Búsqueda</span>
+            <span>Búsqueda de Expedientes</span>
           </button>
 
           {/* BOTÓN 2 */}
