@@ -33,7 +33,7 @@ export default function Login() {
   function handleSubmit(e) {
     e.preventDefault();
 
-    // ✅ Payload listo para backend
+    // Payload listo para backend
     const payload = {
       kioskId,
       username,
