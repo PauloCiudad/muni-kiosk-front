@@ -52,9 +52,16 @@ export default function Home() {
       </header>
 
       {/* BOTONES */}
-      <main className="flex-1 flex items-center justify-center px-6 py-10">
+      <main className="flex-1 flex items-center justify-center px-6 py-16">
         <motion.div
-          className="w-full max-w-5xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
+          className="mx-auto
+                    w-full
+                    max-w-4xl
+                    grid
+                    grid-cols-1
+                    sm:grid-cols-2
+                    gap-10
+                    justify-items-center"
           variants={container}
           initial="hidden"
           animate="show"
@@ -62,24 +69,56 @@ export default function Home() {
           {/* BOTÓN 1 */}
           <motion.button
             variants={itemUp}
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.96 }}
             onClick={() => navigate("/busqueda-expedientes")}
-            className="h-48 rounded-3xl bg-blue-600 text-white font-extrabold text-2xl shadow-xl transition flex flex-col items-center justify-center gap-4"
+            className="
+              w-full
+              max-w-420px
+              h-56
+              rounded-3xl
+              bg-blue-600
+              text-white
+              font-extrabold
+              text-3xl
+              shadow-xl
+              flex
+              flex-col
+              items-center
+              justify-center
+              gap-5
+              transition
+            "
           >
-            <span className="text-5xl">🔍</span>
-            <span>Búsqueda Expedientes</span>
+            <span className="text-6xl">🔍</span>
+            <span className="text-center leading-tight">Búsqueda Expedientes</span>
           </motion.button>
 
           {/* BOTÓN 2 */}
           <motion.button
             variants={itemUp}
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.96 }}
             onClick={() => navigate("/login")}
-            className="h-48 rounded-3xl bg-blue-600 text-white font-extrabold text-2xl shadow-xl transition flex flex-col items-center justify-center gap-4"
+            className="
+              w-full
+              max-w-420px
+              h-56
+              rounded-3xl
+              bg-blue-600
+              text-white
+              font-extrabold
+              text-3xl
+              shadow-xl
+              flex
+              flex-col
+              items-center
+              justify-center
+              gap-5
+              transition
+            "
           >
-            <span className="text-5xl">💳</span>
+            <span className="text-6xl">💳</span>
             <span className="text-center leading-tight">Pagos en Línea</span>
           </motion.button>
 
