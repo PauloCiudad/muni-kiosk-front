@@ -6,6 +6,8 @@ import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import Register from "./pages/Register";
 import Predial from "./pages/Predial";
+import Vehicular from "./pages/Vehicular";
+import Arbitrios from "./pages/Arbitrios";
 
 export default function App() {
   return (
@@ -21,6 +23,8 @@ export default function App() {
         <Route path="/dashboard" element={<Dashboard />} />
 
         <Route path="/predial" element={<Predial />} />
+        <Route path="/vehicular" element={<Vehicular />} />
+        <Route path="/arbitrios" element={<Arbitrios />} />
 
       </Routes>
     </BrowserRouter>
