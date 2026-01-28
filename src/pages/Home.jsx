@@ -76,7 +76,7 @@ export default function Home() {
             variants={itemUp}
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
-            onClick={() => navigate("/dashboard")}
+            onClick={() => navigate("/login")}
             className="h-48 rounded-3xl bg-blue-600 text-white font-extrabold text-2xl shadow-xl transition flex flex-col items-center justify-center gap-4"
           >
             <span className="text-5xl">💳</span>
