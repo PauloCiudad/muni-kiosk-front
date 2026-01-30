@@ -1,7 +1,15 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import logo from "../assets/logos_juntos.png";
-import { BiCart } from "react-icons/bi";
+import {
+  BiHomeAlt,
+  BiCar,
+  BiMoney,
+  BiTrafficCone,
+  BiCart,
+  BiArrowBack,
+} from "react-icons/bi";
+
+import logo from "../assets/logos_juntos.png"; // <-- usa tu logo nuevo aquí
 
 const container = {
   hidden: { opacity: 0 },
@@ -13,26 +21,82 @@ const itemUp = {
   show: { opacity: 1, y: 0 },
 };
 
+// Colores inspirados en el escudo (aprox)
+const COLORS = {
+  azul: "#0B6FB3",
+  azulProfundo: "#0A4A78",
+  dorado: "#D4A83E",
+  rojo: "#D62828",
+};
+
+function CircleTile({ icon, label, onClick, accent = COLORS.azul }) {
+  return (
+    <motion.div
+      variants={itemUp}
+      whileHover={{ scale: 1.06 }}
+      whileTap={{ scale: 0.94 }}
+      onClick={onClick}
+      className="cursor-pointer flex flex-col items-center gap-5 select-none"
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") onClick?.();
+      }}
+    >
+      <div
+        className="
+          w-44 h-44
+          rounded-full
+          border-[5px]
+          flex items-center justify-center
+          bg-white
+          shadow-md
+        "
+        style={{ borderColor: accent, color: accent }}
+      >
+        {icon}
+      </div>
+
+      <span
+        className="text-xl sm:text-2xl font-extrabold text-center leading-tight"
+        style={{ color: accent }}
+      >
+        {label}
+      </span>
+    </motion.div>
+  );
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
 
-  // Luego lo reemplazamos por estado real del carrito (Context)
+  // Luego lo conectamos al Context del carrito
   const cartCount = 0;
 
   return (
     <motion.div
-      className="min-h-screen bg-slate-200 flex flex-col"
+      className="min-h-screen bg-slate-100 flex flex-col"
       variants={container}
       initial="hidden"
       animate="show"
     >
       {/* HEADER */}
-      <header className="relative bg-white shadow px-4 py-6">
+      <header className="relative flex flex-col items-center justify-center py-8 px-4 bg-white shadow">
+        {/* Volver */}
+        <motion.button
+          variants={itemUp}
+          onClick={() => navigate("/")}
+          className="absolute left-4 top-4 w-12 h-12 rounded-xl bg-slate-100 text-2xl flex items-center justify-center active:scale-[0.95]"
+          aria-label="Volver"
+        >
+          <BiArrowBack />
+        </motion.button>
+
         {/* Carrito */}
         <motion.button
           variants={itemUp}
           onClick={() => navigate("/carrito")}
-          className="absolute left-4 top-4 w-12 h-12 rounded-xl bg-slate-100 text-2xl flex items-center justify-center active:scale-[0.95]"
+          className="absolute right-4 top-4 w-12 h-12 rounded-xl bg-slate-100 text-2xl flex items-center justify-center active:scale-[0.95]"
           aria-label="Carrito"
         >
           <BiCart />
@@ -43,95 +107,86 @@ export default function Dashboard() {
           )}
         </motion.button>
 
-        <div className="flex flex-col items-center">
-          <motion.img
-            variants={itemUp}
-            src={logo}
-            alt="Logo"
-            className="w-full max-w-380px object-contain"
-          />
+        <motion.img
+          variants={itemUp}
+          src={logo}
+          alt="Municipalidad Provincial de Arequipa"
+          className="w-full max-w-260px object-contain"
+        />
 
-          <motion.h1
-            variants={itemUp}
-            className="mt-6 text-3xl md:text-4xl font-extrabold text-slate-800 text-center"
-          >
-            Menú Principal
-          </motion.h1>
+        <motion.h1
+          variants={itemUp}
+          className="mt-6 text-3xl md:text-4xl font-extrabold text-slate-800 text-center"
+        >
+          Menú Principal
+        </motion.h1>
 
-          <motion.p
-            variants={itemUp}
-            className="mt-2 text-slate-500 text-lg text-center"
-          >
-            Seleccione una opción
-          </motion.p>
-        </div>
+        <motion.p
+          variants={itemUp}
+          className="mt-2 text-slate-500 text-lg text-center"
+        >
+          Seleccione una opción
+        </motion.p>
       </header>
 
-      {/* OPCIONES */}
-      <main className="flex-1 flex items-center justify-center px-6 py-10">
+      {/* OPCIONES (2 por fila) */}
+      <main className="flex-1 flex items-center justify-center px-6 py-16">
         <motion.div
-          className="w-full max-w-5xl grid grid-cols-1 sm:grid-cols-2 gap-8"
+          className="
+            mx-auto
+            w-full
+            max-w-4xl
+            grid
+            grid-cols-1
+            sm:grid-cols-2
+            gap-14
+            justify-items-center
+          "
           variants={container}
         >
-          <motion.button
-            variants={itemUp}
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.96 }}
+          <CircleTile
+            icon={<BiHomeAlt className="text-[86px]" />}
+            label={
+              <>
+                Impuesto <br /> Predial
+              </>
+            }
+            accent={COLORS.azul}
             onClick={() => navigate("/predial")}
-            className="h-44 rounded-3xl bg-blue-600 text-white font-extrabold text-2xl shadow-xl flex items-center justify-between px-8"
-          >
-            <span className="text-5xl">🏠</span>
-            <span className="flex-1 text-left ml-6">Impuesto Predial</span>
-            <span className="text-4xl opacity-80">›</span>
-          </motion.button>
+          />
 
-          <motion.button
-            variants={itemUp}
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.96 }}
+          <CircleTile
+            icon={<BiCar className="text-[86px]" />}
+            label={
+              <>
+                Impuesto <br /> Vehicular
+              </>
+            }
+            accent={COLORS.dorado}
             onClick={() => navigate("/vehicular")}
-            className="h-44 rounded-3xl bg-blue-600 text-white font-extrabold text-2xl shadow-xl flex items-center justify-between px-8"
-          >
-            <span className="text-5xl">🚗</span>
-            <span className="flex-1 text-left ml-6">Impuesto Vehicular</span>
-            <span className="text-4xl opacity-80">›</span>
-          </motion.button>
+          />
 
-          <motion.button
-            variants={itemUp}
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.96 }}
+          <CircleTile
+            icon={<BiMoney className="text-[86px]" />}
+            label={
+              <>
+                Arbitrios <br /> Municipales
+              </>
+            }
+            accent={COLORS.rojo}
             onClick={() => navigate("/arbitrios")}
-            className="h-44 rounded-3xl bg-blue-600 text-white font-extrabold text-2xl shadow-xl flex items-center justify-between px-8"
-          >
-            <span className="text-5xl">💳</span>
-            <span className="flex-1 text-left ml-6">Arbitrios Municipales</span>
-            <span className="text-4xl opacity-80">›</span>
-          </motion.button>
+          />
 
-          <motion.button
-            variants={itemUp}
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.96 }}
+          <CircleTile
+            icon={<BiTrafficCone className="text-[86px]" />}
+            label={
+              <>
+                Infracciones <br /> de Tránsito
+              </>
+            }
+            accent={COLORS.azulProfundo}
             onClick={() => navigate("/transito")}
-            className="h-44 rounded-3xl bg-blue-600 text-white font-extrabold text-2xl shadow-xl flex items-center justify-between px-8"
-          >
-            <span className="text-5xl">🆘</span>
-            <span className="flex-1 text-left ml-6">Infracciones de Tránsito</span>
-            <span className="text-4xl opacity-80">›</span>
-          </motion.button>
-
-          {/* Ejemplo: botón salir (si luego usas auth real) */}
-          <motion.button
-            variants={itemUp}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.96 }}
-            onClick={() => navigate("/")}
-            className="h-24 sm:col-span-2 rounded-3xl bg-red-600 text-white font-extrabold text-2xl shadow-xl flex items-center justify-center gap-3"
-          >
-            <span className="text-3xl">⬅</span>
-            <span>Salir</span>
-          </motion.button>
+          />
         </motion.div>
       </main>
 
