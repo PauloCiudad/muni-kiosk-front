@@ -21,12 +21,12 @@ const DOC_TYPES = [
   { value: "5", label: "S/D" },
 ];
 
-export default function Predial() {
+export default function Vehicular() {
   const navigate = useNavigate();
 
   const [tipoDoc, setTipoDoc] = useState("1");
   const [nroDoc, setNroDoc] = useState("");
-  const [codigo, setCodigo] = useState("");
+  const [placa, setPlaca] = useState("");
 
   const [results, setResults] = useState([]);
 
@@ -39,7 +39,7 @@ export default function Predial() {
     const mock = [
       {
         id: 1,
-        codigo: codigo || "000123",
+        placa: placa || "V9M123",
         nombre_razon_social: "JUAN PEREZ GOMEZ",
         direccion: "AV. EJEMPLO 123",
         tipo_doc: tipoDoc,
@@ -49,7 +49,7 @@ export default function Predial() {
       },
       {
         id: 2,
-        codigo: codigo || "000124",
+        placa: placa || "BX0184",
         nombre_razon_social: "MARIA LOPEZ DIAZ",
         direccion: "JR. PRUEBA 456",
         tipo_doc: tipoDoc,
@@ -172,9 +172,9 @@ export default function Predial() {
                 Placa
               </label>
               <input
-                value={codigo}
-                onChange={(e) => setCodigo(e.target.value)}
-                placeholder="Ej. 000123"
+                value={placa}
+                onChange={(e) => setPlaca(e.target.value)}
+                placeholder="Ej. V9M123"
                 className="h-14 rounded-xl border border-slate-300 px-4 text-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </motion.div>
@@ -193,17 +193,14 @@ export default function Predial() {
         </motion.form>
 
         {/* RESULTADOS */}
-        <motion.div
-          className="w-full max-w-5xl mt-8"
-          variants={container}
-          initial="hidden"
-          animate={results.length ? "show" : "hidden"}
-        >
-          {results.length > 0 && (
-            <motion.div
-              variants={itemUp}
-              className="bg-white rounded-3xl shadow-xl p-6"
-            >
+        {results.length > 0 && (
+          <motion.div
+            className="w-full max-w-5xl mt-8"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+          >
+            <div className="bg-white rounded-3xl shadow-xl p-6">
               <div className="flex items-center justify-between gap-4">
                 <h2 className="text-2xl font-extrabold text-slate-800">
                   Resultados
@@ -222,7 +219,7 @@ export default function Predial() {
                   <thead>
                     <tr className="text-left text-slate-600">
                       <th className="py-3 px-3 font-extrabold">Seleccionar</th>
-                      <th className="py-3 px-3 font-extrabold">Código</th>
+                      <th className="py-3 px-3 font-extrabold">Placa</th>
                       <th className="py-3 px-3 font-extrabold">Nombre / Razón Social</th>
                       <th className="py-3 px-3 font-extrabold">Dirección</th>
                       <th className="py-3 px-3 font-extrabold">Documento</th>
@@ -236,10 +233,9 @@ export default function Predial() {
                           <input
                             type="checkbox"
                             className="w-6 h-6 accent-blue-600"
-                            // luego lo conectamos al carrito (Context)
                           />
                         </td>
-                        <td className="py-4 px-3 font-bold">{r.codigo}</td>
+                        <td className="py-4 px-3 font-bold">{r.placa}</td>
                         <td className="py-4 px-3">{r.nombre_razon_social}</td>
                         <td className="py-4 px-3">{r.direccion}</td>
                         <td className="py-4 px-3">
@@ -257,9 +253,9 @@ export default function Predial() {
               <div className="mt-4 text-sm text-slate-500">
                 * Los registros “pagados” no se mostrarán (eso lo aplicaremos al conectar con el backend).
               </div>
-            </motion.div>
-          )}
-        </motion.div>
+            </div>
+          </motion.div>
+        )}
       </main>
 
       <motion.footer variants={itemUp} className="py-4 text-center text-sm text-slate-400">

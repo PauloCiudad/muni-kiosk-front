@@ -21,7 +21,7 @@ const DOC_TYPES = [
   { value: "5", label: "S/D" },
 ];
 
-export default function Predial() {
+export default function Arbitrios() {
   const navigate = useNavigate();
 
   const [tipoDoc, setTipoDoc] = useState("1");
@@ -193,78 +193,69 @@ export default function Predial() {
         </motion.form>
 
         {/* RESULTADOS */}
-        <motion.div
-          className="w-full max-w-5xl mt-8"
-          variants={container}
-          initial="hidden"
-          animate={results.length ? "show" : "hidden"}
-        >
-          {results.length > 0 && (
-            <motion.div
-              variants={itemUp}
-              className="bg-white rounded-3xl shadow-xl p-6"
-            >
-              <div className="flex items-center justify-between gap-4">
-                <h2 className="text-2xl font-extrabold text-slate-800">
-                  Resultados
-                </h2>
-                <button
-                  onClick={() => navigate("/carrito")}
-                  className="h-12 px-5 rounded-2xl bg-slate-100 text-slate-800 font-extrabold active:scale-[0.98]"
-                  type="button"
+                {results.length > 0 && (
+                <motion.div
+                    className="w-full max-w-5xl mt-8"
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25, ease: "easeOut" }}
                 >
-                  Ir al carrito 🛒
-                </button>
-              </div>
-
-              <div className="mt-4 overflow-auto">
-                <table className="w-full min-w-900px border-separate border-spacing-0">
-                  <thead>
-                    <tr className="text-left text-slate-600">
-                      <th className="py-3 px-3 font-extrabold">Seleccionar</th>
-                      <th className="py-3 px-3 font-extrabold">Código</th>
-                      <th className="py-3 px-3 font-extrabold">Nombre / Razón Social</th>
-                      <th className="py-3 px-3 font-extrabold">Dirección</th>
-                      <th className="py-3 px-3 font-extrabold">Documento</th>
-                      <th className="py-3 px-3 font-extrabold">Monto</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {results.map((r) => (
-                      <tr key={r.id} className="border-t border-slate-200">
-                        <td className="py-4 px-3">
-                          <input
-                            type="checkbox"
-                            className="w-6 h-6 accent-blue-600"
-                            // luego lo conectamos al carrito (Context)
-                          />
-                        </td>
-                        <td className="py-4 px-3 font-bold">{r.codigo}</td>
-                        <td className="py-4 px-3">{r.nombre_razon_social}</td>
-                        <td className="py-4 px-3">{r.direccion}</td>
-                        <td className="py-4 px-3">
-                          {tipoDocLabel} - {r.nro_doc}
-                        </td>
-                        <td className="py-4 px-3 font-extrabold">
-                          S/ {Number(r.monto).toFixed(2)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="mt-4 text-sm text-slate-500">
-                * Los registros “pagados” no se mostrarán (eso lo aplicaremos al conectar con el backend).
-              </div>
+                    <div className="bg-white rounded-3xl shadow-xl p-6">
+                    <div className="flex items-center justify-between gap-4">
+                        <h2 className="text-2xl font-extrabold text-slate-800">
+                        Resultados
+                        </h2>
+        
+                        <button
+                        onClick={() => navigate("/carrito")}
+                        className="h-12 px-5 rounded-2xl bg-slate-100 text-slate-800 font-extrabold active:scale-[0.98]"
+                        type="button"
+                        >
+                        Ir al carrito 🛒
+                        </button>
+                    </div>
+        
+                    <div className="mt-4 overflow-auto">
+                        <table className="w-full min-w-900px border-separate border-spacing-0">
+                        <thead>
+                            <tr className="text-left text-slate-600">
+                            <th className="py-3 px-3 font-extrabold">Seleccionar</th>
+                            <th className="py-3 px-3 font-extrabold">Código</th>
+                            <th className="py-3 px-3 font-extrabold">Nombre / Razón Social</th>
+                            <th className="py-3 px-3 font-extrabold">Dirección</th>
+                            <th className="py-3 px-3 font-extrabold">Documento</th>
+                            <th className="py-3 px-3 font-extrabold">Monto</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {results.map((r) => (
+                            <tr key={r.id} className="border-t border-slate-200">
+                                <td className="py-4 px-3">
+                                <input type="checkbox" className="w-6 h-6 accent-blue-600" />
+                                </td>
+                                <td className="py-4 px-3 font-bold">{r.codigo}</td>
+                                <td className="py-4 px-3">{r.nombre_razon_social}</td>
+                                <td className="py-4 px-3">{r.direccion}</td>
+                                <td className="py-4 px-3">
+                                {r.tipo_doc} - {r.nro_doc}
+                                </td>
+                                <td className="py-4 px-3 font-extrabold">
+                                S/ {Number(r.monto).toFixed(2)}
+                                </td>
+                            </tr>
+                            ))}
+                        </tbody>
+                        </table>
+                    </div>
+                    </div>
+                </motion.div>
+                )}
+              </main>
+        
+              <motion.footer variants={itemUp} className="py-4 text-center text-sm text-slate-400">
+                Municipalidad Provincial de Arequipa
+              </motion.footer>
             </motion.div>
-          )}
-        </motion.div>
-      </main>
-
-      <motion.footer variants={itemUp} className="py-4 text-center text-sm text-slate-400">
-        Municipalidad Provincial de Arequipa
-      </motion.footer>
-    </motion.div>
-  );
-}
+          );
+        }
+        
