@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import logo from "../assets/logos_juntos.png";
+import { BiArrowBack, BiCart } from "react-icons/bi";
 
 const container = {
   hidden: { opacity: 0 },
@@ -27,24 +28,14 @@ export default function Dashboard() {
     >
       {/* HEADER */}
       <header className="relative bg-white shadow px-4 py-6">
-        {/* Botón volver */}
-        <motion.button
-          variants={itemUp}
-          onClick={() => navigate("/")}
-          className="absolute left-4 top-4 w-12 h-12 rounded-xl bg-slate-100 text-2xl flex items-center justify-center active:scale-[0.95]"
-          aria-label="Volver"
-        >
-          ⬅
-        </motion.button>
-
         {/* Carrito */}
         <motion.button
           variants={itemUp}
           onClick={() => navigate("/carrito")}
-          className="right-4 top-4 w-12 h-12 rounded-xl bg-slate-100 text-2xl flex items-center justify-center active:scale-[0.95] relative"
+          className="absolute left-4 top-4 w-12 h-12 rounded-xl bg-slate-100 text-2xl flex items-center justify-center active:scale-[0.95]"
           aria-label="Carrito"
         >
-          🛒
+          <BiCart />
           {cartCount > 0 && (
             <span className="absolute -top-2 -right-2 min-w-22px h-22px px-1 rounded-full bg-red-500 text-white text-xs font-extrabold flex items-center justify-center">
               {cartCount}

@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import logo from "../assets/logos_juntos.png";
+import { BiArrowBack } from "react-icons/bi";
 
 const container = {
   hidden: { opacity: 0 },
@@ -61,7 +62,7 @@ export default function Login() {
           className="absolute left-4 top-4 w-12 h-12 rounded-xl bg-slate-100 text-2xl flex items-center justify-center active:scale-[0.95]"
           aria-label="Volver"
         >
-          ⬅
+          <BiArrowBack />
         </motion.button>
 
         <motion.img

@@ -93,7 +93,7 @@ export default function Home() {
             </div>
 
             <span className="text-2xl font-extrabold text-blue-600 text-center">
-              Consulta Tributos
+              Búsqueda de Expedientes
             </span>
           </motion.div>
 

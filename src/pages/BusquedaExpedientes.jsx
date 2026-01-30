@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import logo from "../assets/logos_juntos.png";
-import { BiSearchAlt} from "react-icons/bi";
+import { BiSearchAlt, BiArrowBack } from "react-icons/bi";
 
 /* Animaciones */
 const container = {
@@ -37,7 +37,7 @@ export default function BusquedaExpedientes() {
           onClick={() => navigate("/")}
           className="absolute left-4 top-4 w-12 h-12 rounded-xl bg-slate-100 text-2xl flex items-center justify-center active:scale-[0.95]"
         >
-          ⬅
+          <BiArrowBack />
         </motion.button>
 
         <motion.img
