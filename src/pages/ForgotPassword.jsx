@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import logo from "../assets/logos_juntos.png";
-import { BiMailSend } from "react-icons/bi";
+import { BiMailSend, BiArrowBack } from "react-icons/bi";
 
 const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.12 } } };
 const itemUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } };
@@ -22,7 +22,7 @@ export default function ForgotPassword() {
       <header className="relative flex flex-col items-center justify-center py-8 px-4 bg-white shadow">
         <motion.button variants={itemUp} onClick={() => navigate("/login")}
           className="absolute left-4 top-4 w-12 h-12 rounded-xl bg-slate-100 text-2xl flex items-center justify-center active:scale-[0.95]">
-          ⬅
+          <BiArrowBack />
         </motion.button>
 
         <motion.img src={logo} alt="Logo" className="w-full max-w-[320px] object-contain" variants={itemUp} />
