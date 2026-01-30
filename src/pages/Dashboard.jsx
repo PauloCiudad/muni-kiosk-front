@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import logo from "../assets/logos_juntos.png";
-import { BiArrowBack, BiCart } from "react-icons/bi";
+import { BiCart } from "react-icons/bi";
 
 const container = {
   hidden: { opacity: 0 },
