@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import logo from "../assets/logos_juntos.png";
+import {   BiCart, BiArrowBack, BiSearchAlt } from "react-icons/bi";
 
 const container = {
   hidden: { opacity: 0 },
@@ -83,7 +84,7 @@ export default function Predial() {
           className="absolute left-4 top-4 w-12 h-12 rounded-xl bg-slate-100 text-2xl flex items-center justify-center active:scale-[0.95]"
           aria-label="Volver"
         >
-          ⬅
+          <BiArrowBack />
         </motion.button>
 
         <motion.button
@@ -92,7 +93,7 @@ export default function Predial() {
           className="absolute right-4 top-4 w-12 h-12 rounded-xl bg-slate-100 text-2xl flex items-center justify-center active:scale-[0.95]"
           aria-label="Carrito"
         >
-          🛒
+          <BiCart />
         </motion.button>
 
         <div className="flex flex-col items-center">
@@ -189,7 +190,8 @@ export default function Predial() {
               className="w-full h-16 rounded-2xl bg-blue-600 text-white text-xl font-extrabold shadow-lg active:bg-blue-800 transition"
               type="submit"
             >
-              🔍 Buscar
+              <BiSearchAlt className="inline mr-2" />
+              Buscar
             </motion.button>
           </motion.div>
         </motion.form>
@@ -213,7 +215,7 @@ export default function Predial() {
                 className="h-12 px-5 rounded-2xl bg-slate-100 text-slate-800 font-extrabold active:scale-[0.98]"
                 type="button"
                 >
-                Ir al carrito 🛒
+                Ir al carrito <BiCart className="inline ml-2" />
                 </button>
             </div>
 
