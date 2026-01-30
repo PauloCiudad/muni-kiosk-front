@@ -151,7 +151,7 @@ export default function Dashboard() {
                 Impuesto <br /> Predial
               </>
             }
-            accent={COLORS.azul}
+            accent={COLORS.dorado}
             onClick={() => navigate("/predial")}
           />
 
@@ -162,7 +162,7 @@ export default function Dashboard() {
                 Impuesto <br /> Vehicular
               </>
             }
-            accent={COLORS.dorado}
+            accent={COLORS.azulProfundo}
             onClick={() => navigate("/vehicular")}
           />
 
@@ -173,7 +173,7 @@ export default function Dashboard() {
                 Arbitrios <br /> Municipales
               </>
             }
-            accent={COLORS.rojo}
+            accent={COLORS.azul}
             onClick={() => navigate("/arbitrios")}
           />
 
@@ -184,7 +184,7 @@ export default function Dashboard() {
                 Infracciones <br /> de Tránsito
               </>
             }
-            accent={COLORS.azulProfundo}
+            accent={COLORS.rojo}
             onClick={() => navigate("/transito")}
           />
         </motion.div>
