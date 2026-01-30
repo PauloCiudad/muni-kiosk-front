@@ -1,14 +1,14 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { BiSearchAlt, BiCreditCard } from "react-icons/bi";
 import logo from "../assets/logos_juntos.png";
 
+/* Animaciones */
 const container = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
-    transition: {
-      staggerChildren: 0.15,
-    },
+    transition: { staggerChildren: 0.15 },
   },
 };
 
@@ -22,114 +22,118 @@ export default function Home() {
 
   return (
     <motion.div
-      className="min-h-screen bg-slate-200 flex flex-col"
+      className="min-h-screen bg-slate-100 flex flex-col"
       variants={container}
       initial="hidden"
       animate="show"
     >
-      {/* HEADER / LOGO */}
+      {/* HEADER */}
       <header className="flex flex-col items-center justify-center py-10 px-4 bg-white shadow">
         <motion.img
-          src={logo}
-          alt="Logo Municipalidad"
-          className="w-full max-w-420px object-contain"
           variants={itemUp}
+          src={logo}
+          alt="Municipalidad Provincial de Arequipa"
+          className="w-full max-w-420px object-contain"
         />
 
         <motion.h1
-          className="mt-6 text-3xl md:text-4xl font-extrabold text-slate-800 text-center"
           variants={itemUp}
+          className="mt-6 text-3xl md:text-4xl font-extrabold text-slate-800 text-center"
         >
-          Kiosko Multimedia
+          Kiosko Municipal
         </motion.h1>
 
         <motion.p
-          className="mt-2 text-slate-500 text-lg text-center"
           variants={itemUp}
+          className="mt-2 text-slate-500 text-lg text-center"
         >
           Seleccione una opción
         </motion.p>
       </header>
 
-      {/* BOTONES */}
+      {/* OPCIONES PRINCIPALES */}
       <main className="flex-1 flex items-center justify-center px-6 py-16">
         <motion.div
-          className="mx-auto
-                    w-full
-                    max-w-4xl
-                    grid
-                    grid-cols-1
-                    sm:grid-cols-2
-                    gap-10
-                    justify-items-center"
+          className="
+            mx-auto
+            w-full
+            max-w-4xl
+            grid
+            grid-cols-1
+            sm:grid-cols-2
+            gap-20
+            justify-items-center
+          "
           variants={container}
-          initial="hidden"
-          animate="show"
         >
-          {/* BOTÓN 1 */}
-          <motion.button
+          {/* CONSULTA TRIBUTOS */}
+          <motion.div
             variants={itemUp}
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.96 }}
+            whileHover={{ scale: 1.06 }}
+            whileTap={{ scale: 0.94 }}
             onClick={() => navigate("/busqueda-expedientes")}
-            className="
-              w-full
-              max-w-420px
-              h-56
-              rounded-3xl
-              bg-blue-600
-              text-white
-              font-extrabold
-              text-3xl
-              shadow-xl
-              flex
-              flex-col
-              items-center
-              justify-center
-              gap-5
-              transition
-            "
+            className="cursor-pointer flex flex-col items-center gap-6"
           >
-            <span className="text-6xl">🔍</span>
-            <span className="text-center leading-tight">Búsqueda Expedientes</span>
-          </motion.button>
+            <div
+              className="
+                w-48
+                h-48
+                rounded-full
+                border-4
+                border-blue-600
+                flex
+                items-center
+                justify-center
+                text-blue-600
+                bg-white
+                shadow-md
+              "
+            >
+              <BiSearchAlt className="text-[96px]" />
+            </div>
 
-          {/* BOTÓN 2 */}
-          <motion.button
+            <span className="text-2xl font-extrabold text-blue-600 text-center">
+              Consulta Tributos
+            </span>
+          </motion.div>
+
+          {/* PAGOS EN LÍNEA */}
+          <motion.div
             variants={itemUp}
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.96 }}
+            whileHover={{ scale: 1.06 }}
+            whileTap={{ scale: 0.94 }}
             onClick={() => navigate("/login")}
-            className="
-              w-full
-              max-w-420px
-              h-56
-              rounded-3xl
-              bg-blue-600
-              text-white
-              font-extrabold
-              text-3xl
-              shadow-xl
-              flex
-              flex-col
-              items-center
-              justify-center
-              gap-5
-              transition
-            "
+            className="cursor-pointer flex flex-col items-center gap-6"
           >
-            <span className="text-6xl">💳</span>
-            <span className="text-center leading-tight">Pagos en Línea</span>
-          </motion.button>
+            <div
+              className="
+                w-48
+                h-48
+                rounded-full
+                border-4
+                border-blue-600
+                flex
+                items-center
+                justify-center
+                text-blue-600
+                bg-white
+                shadow-md
+              "
+            >
+              <BiCreditCard className="text-[96px]" />
+            </div>
 
-          {/* Aquí luego agregas más botones */}
+            <span className="text-2xl font-extrabold text-blue-600 text-center">
+              Pagos en Línea
+            </span>
+          </motion.div>
         </motion.div>
       </main>
 
       {/* FOOTER */}
       <motion.footer
-        className="py-4 text-center text-sm text-slate-400"
         variants={itemUp}
+        className="py-4 text-center text-sm text-slate-400"
       >
         Municipalidad Provincial de Arequipa
       </motion.footer>

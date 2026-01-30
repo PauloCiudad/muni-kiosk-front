@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import logo from "../assets/logos_juntos.png";
+import { BiCheckDouble } from "react-icons/bi";
 
 const container = {
   hidden: { opacity: 0 },
@@ -227,7 +228,8 @@ export default function Register() {
             className="h-16 rounded-2xl bg-blue-600 text-white text-xl font-extrabold shadow-lg active:bg-blue-800 transition"
             type="submit"
           >
-            ✅ Crear cuenta
+            <BiCheckDouble className="text-2xl mr-2 inline" />
+            Crear cuenta
           </motion.button>
 
           <motion.button

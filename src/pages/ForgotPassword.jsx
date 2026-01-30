@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import logo from "../assets/logos_juntos.png";
+import { BiMailSend } from "react-icons/bi";
 
 const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.12 } } };
 const itemUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } };
@@ -47,7 +48,8 @@ export default function ForgotPassword() {
 
           <motion.button variants={itemUp} whileTap={{ scale: 0.96 }}
             className="h-16 rounded-2xl bg-blue-600 text-white text-xl font-extrabold shadow-lg active:bg-blue-800 transition" type="submit">
-            📩 Enviar
+            <BiMailSend className="text-2xl mr-2 inline" />
+            Enviar
           </motion.button>
         </motion.form>
       </main>
