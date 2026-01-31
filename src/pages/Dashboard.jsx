@@ -107,12 +107,7 @@ export default function Dashboard() {
           )}
         </motion.button>
 
-        <motion.img
-          variants={itemUp}
-          src={logo}
-          alt="Municipalidad Provincial de Arequipa"
-          className="w-full max-w-260px object-contain"
-        />
+        <motion.img variants={itemUp} src={logo} alt="Municipalidad Provincial de Arequipa" className="w-full max-w-[320px] object-contain" />
 
         <motion.h1
           variants={itemUp}
@@ -191,10 +186,7 @@ export default function Dashboard() {
       </main>
 
       {/* FOOTER */}
-      <motion.footer
-        variants={itemUp}
-        className="py-4 text-center text-sm text-slate-400"
-      >
+      <motion.footer variants={itemUp} className="py-4 text-center text-sm text-slate-400">
         Municipalidad Provincial de Arequipa
       </motion.footer>
     </motion.div>

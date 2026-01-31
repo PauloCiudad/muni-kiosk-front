@@ -3,17 +3,14 @@ import { motion } from "framer-motion";
 import { BiSearchAlt, BiCreditCard } from "react-icons/bi";
 import logo from "../assets/logos_juntos.png";
 
-/* Animaciones */
+/* Animaciones (consistente con Login) */
 const container = {
   hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.15 },
-  },
+  show: { opacity: 1, transition: { staggerChildren: 0.12 } },
 };
 
 const itemUp = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { opacity: 0, y: 16 },
   show: { opacity: 1, y: 0 },
 };
 
@@ -28,12 +25,12 @@ export default function Home() {
       animate="show"
     >
       {/* HEADER */}
-      <header className="flex flex-col items-center justify-center py-10 px-4 bg-white shadow">
+      <header className="relative flex flex-col items-center justify-center py-8 px-4 bg-white shadow">
         <motion.img
           variants={itemUp}
           src={logo}
           alt="Municipalidad Provincial de Arequipa"
-          className="w-full max-w-420px object-contain"
+          className="w-full max-w-[320px] object-contain"
         />
 
         <motion.h1
@@ -52,7 +49,7 @@ export default function Home() {
       </header>
 
       {/* OPCIONES PRINCIPALES */}
-      <main className="flex-1 flex items-center justify-center px-6 py-16">
+      <main className="flex-1 flex items-center justify-center px-6 py-10">
         <motion.div
           className="
             mx-auto
@@ -131,10 +128,7 @@ export default function Home() {
       </main>
 
       {/* FOOTER */}
-      <motion.footer
-        variants={itemUp}
-        className="py-4 text-center text-sm text-slate-400"
-      >
+      <motion.footer variants={itemUp} className="py-4 text-center text-sm text-slate-400">
         Municipalidad Provincial de Arequipa
       </motion.footer>
     </motion.div>
