@@ -3,19 +3,14 @@ import { motion } from "framer-motion";
 import logo from "../assets/logos_juntos.png";
 import { BiSearchAlt, BiArrowBack } from "react-icons/bi";
 
-/* Animaciones */
+/* Animaciones (consistente con Login) */
 const container = {
   hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.15,
-    },
-  },
+  show: { opacity: 1, transition: { staggerChildren: 0.12 } },
 };
 
 const itemUp = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { opacity: 0, y: 16 },
   show: { opacity: 1, y: 0 },
 };
 
@@ -40,12 +35,7 @@ export default function BusquedaExpedientes() {
           <BiArrowBack />
         </motion.button>
 
-        <motion.img
-          src={logo}
-          alt="Logo Municipalidad"
-          className="w-full max-w-[320px] object-contain"
-          variants={itemUp}
-        />
+        <motion.img src={logo} alt="Logo Municipalidad" className="w-full max-w-[320px] object-contain" variants={itemUp} />
 
         <motion.h1
           className="mt-6 text-2xl font-extrabold text-slate-800 text-center"
@@ -75,7 +65,7 @@ export default function BusquedaExpedientes() {
             </label>
             <input
               type="text"
-              placeholder="Ej. 2024-001234"
+              placeholder="Ej. 000001234"
               className="h-14 rounded-xl border border-slate-300 px-4 text-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </motion.div>
@@ -104,10 +94,7 @@ export default function BusquedaExpedientes() {
       </main>
 
       {/* FOOTER */}
-      <motion.footer
-        variants={itemUp}
-        className="py-4 text-center text-sm text-slate-400"
-      >
+      <motion.footer variants={itemUp} className="py-4 text-center text-sm text-slate-400">
         Municipalidad Provincial de Arequipa
       </motion.footer>
     </motion.div>

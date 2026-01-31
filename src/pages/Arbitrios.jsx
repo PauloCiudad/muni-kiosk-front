@@ -75,7 +75,7 @@ export default function Arbitrios() {
       animate="show"
     >
       {/* HEADER */}
-      <header className="relative bg-white shadow px-4 py-6">
+      <header className="relative flex flex-col items-center justify-center py-8 px-4 bg-white shadow">
         <motion.button
           variants={itemUp}
           onClick={() => navigate("/dashboard")}
@@ -95,12 +95,7 @@ export default function Arbitrios() {
         </motion.button>
 
         <div className="flex flex-col items-center">
-          <motion.img
-            variants={itemUp}
-            src={logo}
-            alt="Logo"
-            className="w-full max-w-340px object-contain"
-          />
+          <motion.img variants={itemUp} src={logo} alt="Logo" className="w-full max-w-[320px] object-contain" />
 
           <motion.h1
             variants={itemUp}
