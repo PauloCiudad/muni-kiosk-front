@@ -3,8 +3,6 @@ import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import BusquedaExpedientes from "./pages/BusquedaExpedientes";
 import Login from "./pages/Login";
-import ForgotPassword from "./pages/ForgotPassword";
-import Register from "./pages/Register";
 import Predial from "./pages/Predial";
 import Vehicular from "./pages/Vehicular";
 import Arbitrios from "./pages/Arbitrios";
@@ -18,8 +16,6 @@ export default function App() {
 
         <Route path="/busqueda-expedientes" element={<BusquedaExpedientes />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/register" element={<Register />} />
 
         <Route path="/dashboard" element={<Dashboard />} />
 

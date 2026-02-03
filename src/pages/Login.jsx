@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { BiArrowBack, BiLogInCircle } from "react-icons/bi";
 import logo from "../assets/logos_juntos.png";
-import { BiArrowBack } from "react-icons/bi";
 
 const container = {
   hidden: { opacity: 0 },
@@ -14,42 +14,73 @@ const itemUp = {
   show: { opacity: 1, y: 0 },
 };
 
-function getOrCreateKioskId() {
-  const key = "kiosk_id";
-  let id = localStorage.getItem(key);
-  if (!id) {
-    id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now());
-    localStorage.setItem(key, id);
-  }
-  return id;
-}
+const DOC_TYPES = [
+  { value: "1", label: "DNI" },
+  { value: "2", label: "RUC" },
+  { value: "3", label: "Pasaporte" },
+  { value: "4", label: "Carnet Extranjería" },
+  { value: "5", label: "S/D" },
+];
+
+// Colores inspirados en el escudo (aprox)
+const COLORS = {
+  azul: "#0B6FB3",
+  azulProfundo: "#0A4A78",
+  dorado: "#D4A83E",
+  rojo: "#D62828",
+};
 
 export default function Login() {
   const navigate = useNavigate();
-  const kioskId = useMemo(() => getOrCreateKioskId(), []);
 
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const [tipoDoc, setTipoDoc] = useState("1");
+  const [nroDoc, setNroDoc] = useState("");
+  const [correo, setCorreo] = useState("");
+  const [celular, setCelular] = useState("");
+  const [error, setError] = useState("");
+
+  const isSD = tipoDoc === "5";
+
+  const tipoDocLabel = useMemo(() => {
+    return DOC_TYPES.find((d) => d.value === tipoDoc)?.label ?? "";
+  }, [tipoDoc]);
+
+  function onlyDigits(value) {
+    return value.replace(/\D/g, "");
+  }
 
   function handleSubmit(e) {
     e.preventDefault();
+    setError("");
 
-    // Payload listo para backend
+    const nroDocFinal = isSD ? "0" : nroDoc.trim();
+
+    // Validaciones frontend (simples)
+    if (!tipoDoc) return setError("Seleccione el tipo de documento.");
+    if (!isSD && !nroDocFinal) return setError("Ingrese el número de documento.");
+    if (!correo.trim()) return setError("Ingrese el correo electrónico.");
+    if (!celular.trim()) return setError("Ingrese el número de celular.");
+
+    if (!correo.includes("@")) return setError("Correo inválido.");
+    if (celular.length < 9) return setError("El celular debe tener al menos 9 dígitos.");
+
+    // Payload listo para API futura
     const payload = {
-      kioskId,
-      username,
-      password,
+      tipo_doc: Number(tipoDoc),
+      nro_doc: nroDocFinal, // "0" si S/D
+      correo_electronico: correo.trim(),
+      celular: celular.trim(),
     };
 
     console.log("LOGIN PAYLOAD =>", payload);
 
-    // Por ahora solo navega (Cuando se tenga backend aquí va la llamada)
+    // Por ahora: simulamos éxito y vamos al dashboard
     navigate("/dashboard");
   }
 
   return (
     <motion.div
-      className="min-h-screen bg-slate-200 flex flex-col"
+      className="min-h-screen bg-slate-100 flex flex-col"
       variants={container}
       initial="hidden"
       animate="show"
@@ -66,97 +97,139 @@ export default function Login() {
         </motion.button>
 
         <motion.img
-          src={logo}
-          alt="Logo"
-          className="w-full max-w-[320px] object-contain"
           variants={itemUp}
+          src={logo}
+          alt="Municipalidad Provincial de Arequipa"
+          className="w-full max-w-260px object-contain"
         />
 
         <motion.h1
-          className="mt-6 text-2xl font-extrabold text-slate-800 text-center"
           variants={itemUp}
+          className="mt-6 text-3xl md:text-4xl font-extrabold text-slate-800 text-center"
         >
           Pagos en Línea
         </motion.h1>
 
-        <motion.p className="mt-1 text-slate-500 text-center" variants={itemUp}>
-          Inicie sesión para continuar
+        <motion.p
+          variants={itemUp}
+          className="mt-2 text-slate-500 text-lg text-center"
+        >
+          Ingrese sus datos para continuar
         </motion.p>
       </header>
 
       {/* Form */}
-      <main className="flex-1 flex items-center justify-center px-6 py-10">
+      <main className="flex-1 flex items-center justify-center px-6 py-12">
         <motion.form
           onSubmit={handleSubmit}
-          className="w-full max-w-md bg-white rounded-3xl shadow-xl p-6 flex flex-col gap-5"
+          className="w-full max-w-2xl bg-white rounded-3xl shadow-xl p-6 flex flex-col gap-5"
           variants={container}
         >
-          {/* Kiosk ID (se manda al backend, no editable) */}
-          <motion.div variants={itemUp} className="text-xs text-slate-500">
-            ID del kiosko: <span className="font-mono">{kioskId}</span>
+          {error && (
+            <motion.div
+              variants={itemUp}
+              className="rounded-xl border border-red-200 bg-red-50 text-red-700 p-4 font-bold"
+            >
+              {error}
+            </motion.div>
+          )}
+
+          {/* Tipo doc */}
+          <motion.div variants={itemUp} className="flex flex-col gap-2">
+            <label className="text-lg font-extrabold text-slate-700">
+              Tipo de Documento
+            </label>
+            <select
+              value={tipoDoc}
+              onChange={(e) => setTipoDoc(e.target.value)}
+              className="h-14 rounded-xl border border-slate-300 px-4 text-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {DOC_TYPES.map((d) => (
+                <option key={d.value} value={d.value}>
+                  {d.label}
+                </option>
+              ))}
+            </select>
           </motion.div>
 
+          {/* Nro doc */}
           <motion.div variants={itemUp} className="flex flex-col gap-2">
-            <label className="text-lg font-bold text-slate-700">Usuario</label>
+            <label className="text-lg font-extrabold text-slate-700">
+              Nro. de Documento
+            </label>
             <input
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Ingrese su usuario"
-              className="h-14 rounded-xl border border-slate-300 px-4 text-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              autoComplete="username"
+              value={nroDoc}
+              onChange={(e) => setNroDoc(onlyDigits(e.target.value))}
+              disabled={isSD}
+              placeholder={isSD ? "S/D usa 0 automáticamente" : `Ingrese ${tipoDocLabel}`}
+              className={`h-14 rounded-xl border px-4 text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                isSD
+                  ? "border-slate-200 bg-slate-100 text-slate-400"
+                  : "border-slate-300 bg-white"
+              }`}
+              inputMode="numeric"
+            />
+            {isSD && (
+              <div className="text-xs text-slate-500">
+                * S/D significa sin documento, se enviará nro_doc = 0
+              </div>
+            )}
+          </motion.div>
+
+          {/* Correo */}
+          <motion.div variants={itemUp} className="flex flex-col gap-2">
+            <label className="text-lg font-extrabold text-slate-700">
+              Correo Electrónico
+            </label>
+            <input
+              type="email"
+              value={correo}
+              onChange={(e) => setCorreo(e.target.value)}
+              placeholder="correo@ejemplo.com"
+              className="h-14 rounded-xl border border-slate-300 px-4 text-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              autoComplete="email"
             />
           </motion.div>
 
+          {/* Celular */}
           <motion.div variants={itemUp} className="flex flex-col gap-2">
-            <label className="text-lg font-bold text-slate-700">Contraseña</label>
+            <label className="text-lg font-extrabold text-slate-700">
+              Número de Celular
+            </label>
             <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Ingrese su contraseña"
-              className="h-14 rounded-xl border border-slate-300 px-4 text-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              autoComplete="current-password"
+              value={celular}
+              onChange={(e) => setCelular(onlyDigits(e.target.value).slice(0, 9))}
+              placeholder="Ej. 987654321"
+              className="h-14 rounded-xl border border-slate-300 px-4 text-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              inputMode="numeric"
             />
+            <div className="text-xs text-slate-500">
+              * Solo números (9 dígitos)
+            </div>
           </motion.div>
 
+          {/* Submit */}
           <motion.button
             variants={itemUp}
             whileTap={{ scale: 0.96 }}
-            className="h-16 rounded-2xl bg-blue-600 text-white text-xl font-extrabold shadow-lg active:bg-blue-800 transition"
+            className="h-16 rounded-2xl text-white text-xl font-extrabold shadow-lg transition"
+            style={{ backgroundColor: COLORS.azul }}
             type="submit"
           >
-            Iniciar Sesión
+            <span className="inline-flex items-center justify-center gap-3">
+              <BiLogInCircle className="text-3xl" />
+              Continuar
+            </span>
           </motion.button>
 
-          {/* Links */}
-          <motion.div
-            variants={itemUp}
-            className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2"
-          >
-            <button
-              type="button"
-              onClick={() => navigate("/forgot-password")}
-              className="text-blue-700 font-bold underline underline-offset-4 active:opacity-70"
-            >
-              ¿Olvidaste tu contraseña?
-            </button>
-
-            <button
-              type="button"
-              onClick={() => navigate("/register")}
-              className="text-slate-700 font-bold underline underline-offset-4 active:opacity-70"
-            >
-              Registrarse
-            </button>
+          <motion.div variants={itemUp} className="text-center text-sm text-slate-400">
+            Municipalidad Provincial de Arequipa
           </motion.div>
         </motion.form>
       </main>
 
-      <motion.footer
-        variants={itemUp}
-        className="py-4 text-center text-sm text-slate-400"
-      >
-        Municipalidad Provincial de Arequipa
+      <motion.footer variants={itemUp} className="py-4 text-center text-sm text-slate-400">
+        © Kiosko Municipal
       </motion.footer>
     </motion.div>
   );
