@@ -218,7 +218,7 @@ export default function Login() {
           >
             <span className="inline-flex items-center justify-center gap-3">
               <BiLogInCircle className="text-3xl" />
-              Continuar
+              Buscar
             </span>
           </motion.button>
 
