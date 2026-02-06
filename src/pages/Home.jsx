@@ -1,95 +1,100 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { BiSearchAlt, BiCreditCard, BiSupport } from "react-icons/bi";
-import logo from "../assets/logos_juntos.png";
 
-/* Animaciones base */
+import logo from "../assets/logos_juntos.png";
+import municipalidadImg from "../assets/municipalidad.png";
+
+/* Sonido kiosko (opcional) */
+const clickSound = new Audio("/click.mp3");
+
 const container = {
   hidden: { opacity: 0 },
   show: { opacity: 1, transition: { staggerChildren: 0.12 } },
 };
 
 const itemUp = {
-  hidden: { opacity: 0, y: 16 },
+  hidden: { opacity: 0, y: 14 },
   show: { opacity: 1, y: 0 },
 };
 
-/* Sonido kiosko */
-const clickSound = new Audio("/click.mp3");
-
-/* Colores institucionales */
-const THEMES = {
-  azul: {
-    bg: "bg-blue-700",
-    hover: "hover:bg-blue-800",
-    ring: "hover:ring-blue-300",
-  },
-  dorado: {
-    bg: "bg-amber-500",
-    hover: "hover:bg-amber-600",
-    ring: "hover:ring-amber-200",
-  },
-  gris: {
-    bg: "bg-slate-600",
-    hover: "hover:bg-slate-700",
-    ring: "hover:ring-slate-300",
-  },
-};
-
-function RectTile({ icon, label, onClick, theme }) {
+function MosaicTile({ icon, label, bgClass, onClick }) {
   return (
     <motion.button
       type="button"
       variants={itemUp}
-      whileHover={{ scale: 1.04 }}
-      whileTap={{ scale: 0.95 }}
+      whileHover={{ scale: 1.03 }}
+      whileTap={{ scale: 0.96 }}
       onClick={() => {
         try {
           clickSound.currentTime = 0;
           clickSound.play();
         } catch {}
-        onClick();
+        onClick?.();
       }}
       className={`
-        relative
-        w-90 h-55
-        md:w-105 md:h-60
-        lg:w-115 lg:h-65
-        rounded-none
-        overflow-hidden
+        relative overflow-hidden rounded-none
+        ${bgClass}
         text-white
-        shadow-2xl
-        transition
-        ${theme.bg} ${theme.hover}
-        ring-0 hover:ring-4 ${theme.ring}
-        flex flex-col items-center justify-center gap-6
+        shadow-xl hover:shadow-2xl transition
+        flex flex-col items-center justify-center
         select-none
+        min-h-85 md:min-h-105
       `}
     >
-      {/* Shine */}
+      {/* círculo decorativo */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="w-64 h-64 md:w-72 md:h-72 rounded-full bg-white/15" />
+      </div>
+
+      {/* brillo */}
       <span
         className="
           absolute inset-0
-          -translate-x-full
-          hover:translate-x-full
+          -translate-x-full hover:translate-x-full
           transition-transform duration-700
-          bg-linear-to-r from-transparent via-white/25 to-transparent
+          bg-linear-to-r from-transparent via-white/20 to-transparent
         "
       />
 
-      {/* Icono */}
       <motion.div
-        whileHover={{ y: -8 }}
+        whileHover={{ y: -10 }}
         transition={{ type: "spring", stiffness: 300 }}
-        className="text-7xl md:text-8xl lg:text-9xl drop-shadow-xl z-10"
+        className="z-10 text-8xl md:text-9xl drop-shadow-lg"
       >
         {icon}
       </motion.div>
 
-      <div className="z-10 text-2xl md:text-3xl font-extrabold text-center px-6 leading-tight">
+      <div className="z-10 mt-5 text-2xl md:text-3xl font-extrabold text-center px-6">
         {label}
       </div>
     </motion.button>
+  );
+}
+
+function PhotoTile() {
+  return (
+    <motion.div
+      variants={itemUp}
+      className="
+        relative overflow-hidden rounded-none
+        shadow-xl
+        min-h-85 md:min-h-105
+      "
+    >
+      <img
+        src={municipalidadImg}
+        alt="Municipalidad Provincial de Arequipa"
+        className="absolute inset-0 w-full h-full object-cover"
+      />
+      <div className="absolute inset-0 bg-black/25" />
+
+      <div className="relative h-full w-full flex items-end p-6">
+        <div className="text-white font-extrabold text-xl md:text-2xl drop-shadow">
+          Municipalidad Provincial de Arequipa
+        </div>
+      </div>
+    </motion.div>
   );
 }
 
@@ -98,77 +103,80 @@ export default function Home() {
 
   return (
     <motion.div
-      className="min-h-screen bg-slate-100 flex flex-col items-center"
+      className="w-screen h-screen bg-slate-200"
       variants={container}
       initial="hidden"
       animate="show"
     >
-      {/* HEADER */}
-      <motion.header
-        variants={itemUp}
-        className="w-full flex flex-col items-center py-10 bg-white shadow"
-      >
-        <img
-          src={logo}
-          alt="Municipalidad Provincial de Arequipa"
-          className="w-full max-w-380px object-contain"
-        />
-
-        <h1 className="mt-6 text-4xl font-extrabold text-slate-800 text-center">
-          Kiosko Municipal
-        </h1>
-
-        <p className="mt-2 text-slate-500 text-xl text-center">
-          Seleccione una opción
-        </p>
-      </motion.header>
-
-      {/* BOTONES */}
-      <motion.main
-        variants={container}
-        className="flex-1 w-full flex items-center justify-center px-8 py-14"
-      >
-        <div
+      {/* App full-screen (monitor vertical real) */}
+      <div className="w-full h-full flex flex-col bg-white overflow-hidden">
+        {/* HEADER */}
+        <motion.header
+          variants={itemUp}
           className="
-            grid
-            grid-cols-1
-            lg:grid-cols-2
-            gap-10
-            max-w-240
-            w-full
-            place-items-center
+            bg-linear-to-b from-sky-600 to-blue-700
+            text-white
+            px-10 py-12
+            flex flex-col items-center
+            gap-6
+            shadow
           "
         >
-          <RectTile
-            theme={THEMES.azul}
-            icon={<BiSearchAlt />}
-            label="Búsqueda de expedientes"
-            onClick={() => navigate("/busqueda-expedientes")}
+          <img
+            src={logo}
+            alt="Logo"
+            className="h-24 md:h-28 object-contain bg-white/90 p-3"
           />
 
-          <RectTile
-            theme={THEMES.dorado}
-            icon={<BiCreditCard />}
-            label="Pagos en línea"
-            onClick={() => navigate("/login")}
-          />
+          <div className="text-center">
+            <h1 className="text-5xl md:text-6xl font-extrabold">
+              Kiosko Municipal
+            </h1>
+            <p className="text-white/85 text-xl md:text-2xl mt-2">
+              Seleccione una opción
+            </p>
+          </div>
+        </motion.header>
 
-          <RectTile
-            theme={THEMES.gris}
-            icon={<BiSupport />}
-            label="Consultas en línea"
-            onClick={() => navigate("/consultas")}
-          />
-        </div>
-      </motion.main>
+        {/* MOSAICO */}
+        <motion.main
+          variants={container}
+          className="flex-1 p-10 bg-slate-100"
+        >
+          <div className="grid grid-cols-2 gap-10 h-full">
+            <MosaicTile
+              bgClass="bg-blue-700 hover:bg-blue-800"
+              icon={<BiSearchAlt />}
+              label="Búsqueda de expedientes"
+              onClick={() => navigate("/busqueda-expedientes")}
+            />
 
-      {/* FOOTER */}
-      <motion.footer
-        variants={itemUp}
-        className="py-4 text-base text-slate-400 text-center"
-      >
-        Municipalidad Provincial de Arequipa
-      </motion.footer>
+            <MosaicTile
+              bgClass="bg-amber-500 hover:bg-amber-600"
+              icon={<BiCreditCard />}
+              label="Pagos en línea"
+              onClick={() => navigate("/login")}
+            />
+
+            <PhotoTile />
+
+            <MosaicTile
+              bgClass="bg-slate-600 hover:bg-slate-700"
+              icon={<BiSupport />}
+              label="Consultas en línea"
+              onClick={() => navigate("/consultas")}
+            />
+          </div>
+        </motion.main>
+
+        {/* FOOTER */}
+        <motion.footer
+          variants={itemUp}
+          className="py-6 text-center text-slate-400 text-base bg-white border-t"
+        >
+          Municipalidad Provincial de Arequipa
+        </motion.footer>
+      </div>
     </motion.div>
   );
 }
