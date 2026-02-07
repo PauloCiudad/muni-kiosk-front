@@ -86,8 +86,8 @@ export default function Login() {
           variants={itemUp}
           className="
             relative
-            bg-linear-to-b from-sky-600 to-blue-700
-            text-white
+            bg-linear-to-b from-white-100 to-slate-200
+            text-blue-700
             px-10 py-12
             flex flex-col items-center
             gap-6
@@ -100,8 +100,8 @@ export default function Login() {
             className="
               absolute left-8 top-8
               w-16 h-16
-              bg-white/15 border border-white/25
-              text-white text-4xl
+              bg-black/15 border border-black/35
+              text-black text-4xl
               flex items-center justify-center
               active:scale-[0.95]
             "
@@ -114,14 +114,14 @@ export default function Login() {
           <img
             src={logo}
             alt="Municipalidad Provincial de Arequipa"
-            className="h-24 md:h-28 object-contain bg-white/90 p-3"
+            className="h-24 md:h-70 object-contain p-3"
           />
 
           <div className="text-center">
             <h1 className="text-5xl md:text-6xl font-extrabold">
               Pagos en Línea
             </h1>
-            <p className="text-white/85 text-xl md:text-2xl mt-2">
+            <p className="text-blue-700 text-xl md:text-2xl mt-2">
               Ingrese sus datos para continuar
             </p>
           </div>
@@ -274,13 +274,6 @@ export default function Login() {
                 Buscar
               </span>
             </motion.button>
-
-            <motion.div
-              variants={itemUp}
-              className="text-center text-slate-400 text-base"
-            >
-              Municipalidad Provincial de Arequipa
-            </motion.div>
           </motion.form>
         </motion.main>
 

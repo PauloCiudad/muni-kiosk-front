@@ -1,368 +1,297 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { BiArrowBack, BiChevronDown, BiChevronUp } from "react-icons/bi";
+import { BiArrowBack, BiLogInCircle } from "react-icons/bi";
 import logo from "../assets/logos_juntos.png";
-
-// Helpers
-const money = (n) =>
-  "S/ " +
-  Number(n || 0).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const container = {
   hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.08 } },
+  show: { opacity: 1, transition: { staggerChildren: 0.12 } },
 };
-const itemUp = { hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0 } };
 
-// =========================
-// MOCKS
-// =========================
-function useMockData() {
-  // Estructura similar a lo que necesitas mostrar
-  return {
-    ruc: "20382036655",
-    contribuyente: "227309",
-    predial: {
-      title: "Impuesto predial",
-      rows: [
-        { id: "pred-2026-0", anioCuota: "2026-0", docPago: "0000227309P26", venc: "", estado: "", deuda: 16459.10, pagado: 0 },
-        { id: "pred-2026-1", anioCuota: "2026-1", docPago: "12600217401", venc: "27/02/2026", estado: "Pendiente", deuda: 4115.90, pagado: 0 },
-        { id: "pred-2026-2", anioCuota: "2026-2", docPago: "12601326841", venc: "29/05/2026", estado: "Pendiente", deuda: 4114.40, pagado: 0 },
-        { id: "pred-2026-3", anioCuota: "2026-3", docPago: "12602370631", venc: "31/08/2026", estado: "Pendiente", deuda: 4114.40, pagado: 0 },
-        { id: "pred-2026-4", anioCuota: "2026-4", docPago: "12603414423", venc: "30/11/2026", estado: "Pendiente", deuda: 4114.40, pagado: 0 },
-      ],
-    },
-    arbitrios: {
-      title: "Arbitrios municipales",
-      referencia: "Predio: JR CARABAYA N° 400-408, CERCADO DE LIMA - Ref: UNID INMOB 1",
-      rows: [
-        { id: "arb-2026-0", anioCuota: "2026-0", docPago: "1001065285A26", venc: "", estado: "", deuda: 22104.40, pagado: 0 },
-        { id: "arb-2026-1", anioCuota: "2026-1", docPago: "12606241681", venc: "27/02/2026", estado: "Pendiente", deuda: 6007.36, pagado: 0 },
-        { id: "arb-2026-2", anioCuota: "2026-2", docPago: "12606241692", venc: "29/05/2026", estado: "Pendiente", deuda: 6006.36, pagado: 0 },
-        { id: "arb-2026-3", anioCuota: "2026-3", docPago: "12606241709", venc: "31/08/2026", estado: "Pendiente", deuda: 6006.36, pagado: 0 },
-        { id: "arb-2026-4", anioCuota: "2026-4", docPago: "12606241711", venc: "30/11/2026", estado: "Pendiente", deuda: 6006.36, pagado: 0 },
-      ],
-    },
-    papeletas: {
-      title: "Papeletas",
-      rows: [
-        { id: "pap-A4L722", referencia: "Referencia:", placa: "A4L722", deuda: 900.0, pagado: 0 },
-        { id: "pap-A7F754", referencia: "Referencia:", placa: "A7F754", deuda: 850.0, pagado: 0 },
-        { id: "pap-A7S771", referencia: "Referencia:", placa: "A7S771", deuda: 1100.0, pagado: 0 },
-        { id: "pap-A9K714", referencia: "Referencia:", placa: "A9K714", deuda: 1200.0, pagado: 0 },
-        { id: "pap-A2A874", referencia: "Referencia:", placa: "A2A874", deuda: 900.0, pagado: 0 },
-        { id: "pap-A3C747", referencia: "Referencia:", placa: "A3C747", deuda: 1247.2, pagado: 0 },
-        { id: "pap-A7J824", referencia: "Referencia:", placa: "A7J824", deuda: 1000.0, pagado: 0 },
-        { id: "pap-B7V764", referencia: "Referencia:", placa: "B7V764", deuda: 1000.0, pagado: 0 },
-      ],
-    },
-    vehicular: {
-      title: "Impuesto vehicular",
-      rows: [
-        // si no hay deudas, se deja vacío
-      ],
-    },
-  };
+const itemUp = {
+  hidden: { opacity: 0, y: 14 },
+  show: { opacity: 1, y: 0 },
+};
+
+const DOC_TYPES = [
+  { value: "1", label: "DNI" },
+  { value: "2", label: "RUC" },
+  { value: "3", label: "Pasaporte" },
+  { value: "4", label: "Carnet de Extranjería" },
+  { value: "5", label: "S/D" },
+];
+
+const COLORS = {
+  azul: "#0B6FB3",
+  azulProfundo: "#0A4A78",
+};
+
+function onlyDigits(value) {
+  return value.replace(/\D/g, "");
 }
 
-function Section({ title, total, open, onToggle, children, accent = "bg-slate-200" }) {
-  return (
-    <div className="bg-white rounded-2xl shadow overflow-hidden">
-      <button
-        type="button"
-        onClick={onToggle}
-        className={`w-full px-4 py-3 flex items-center justify-between ${accent}`}
-      >
-        <div className="flex items-center gap-3">
-          <span className="font-extrabold text-slate-800">{title}</span>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <span className="font-extrabold text-slate-800">TOTAL:</span>
-          <span className="font-extrabold text-slate-800">{money(total)}</span>
-          {open ? <BiChevronUp className="text-2xl" /> : <BiChevronDown className="text-2xl" />}
-        </div>
-      </button>
-
-      {open && <div className="p-4">{children}</div>}
-    </div>
-  );
-}
-
-export default function Dashboard() {
+export default function Login() {
   const navigate = useNavigate();
-  const data = useMockData();
 
-  // Colapsables
-  const [openPredial, setOpenPredial] = useState(true);
-  const [openArb, setOpenArb] = useState(true);
-  const [openPap, setOpenPap] = useState(true);
-  const [openVeh, setOpenVeh] = useState(false);
+  const [tipoDoc, setTipoDoc] = useState("1");
+  const [nroDoc, setNroDoc] = useState("");
+  const [correo, setCorreo] = useState("");
+  const [celular, setCelular] = useState("");
+  const [error, setError] = useState("");
 
-  // Selección (simula carrito)
-  const [selected, setSelected] = useState(() => new Set());
+  const isSD = tipoDoc === "5";
 
-  const predialRows = useMemo(
-    () => data.predial.rows.filter((r) => r.pagado === 0),
-    [data.predial.rows]
-  );
-  const arbRows = useMemo(
-    () => data.arbitrios.rows.filter((r) => r.pagado === 0),
-    [data.arbitrios.rows]
-  );
-  const papRows = useMemo(
-    () => data.papeletas.rows.filter((r) => r.pagado === 0),
-    [data.papeletas.rows]
-  );
-  const vehRows = useMemo(
-    () => data.vehicular.rows.filter((r) => r.pagado === 0),
-    [data.vehicular.rows]
-  );
+  const tipoDocLabel = useMemo(() => {
+    return DOC_TYPES.find((d) => d.value === tipoDoc)?.label ?? "";
+  }, [tipoDoc]);
 
-  const totalPredial = useMemo(() => predialRows.reduce((a, r) => a + (r.deuda || 0), 0), [predialRows]);
-  const totalArb = useMemo(() => arbRows.reduce((a, r) => a + (r.deuda || 0), 0), [arbRows]);
-  const totalPap = useMemo(() => papRows.reduce((a, r) => a + (r.deuda || 0), 0), [papRows]);
-  const totalVeh = useMemo(() => vehRows.reduce((a, r) => a + (r.deuda || 0), 0), [vehRows]);
-  const totalGeneral = totalPredial + totalArb + totalPap + totalVeh;
+  function handleSubmit(e) {
+    e.preventDefault();
+    setError("");
 
-  const allIds = useMemo(() => {
-    return [...predialRows, ...arbRows, ...papRows, ...vehRows].map((x) => x.id);
-  }, [predialRows, arbRows, papRows, vehRows]);
+    const nroDocFinal = isSD ? "0" : nroDoc.trim();
 
-  const allSelected = selected.size > 0 && allIds.every((id) => selected.has(id));
+    if (!tipoDoc) return setError("Seleccione el tipo de documento.");
+    if (!isSD && !nroDocFinal) return setError("Ingrese el número de documento.");
+    if (!correo.trim()) return setError("Ingrese el correo electrónico.");
+    if (!celular.trim()) return setError("Ingrese el número de celular.");
 
-  function toggleOne(id) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
+    if (!correo.includes("@")) return setError("Correo inválido.");
+    if (celular.length < 9) return setError("El celular debe tener 9 dígitos.");
 
-  function toggleAll() {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      const shouldSelectAll = !allIds.every((id) => next.has(id));
-      if (shouldSelectAll) allIds.forEach((id) => next.add(id));
-      else allIds.forEach((id) => next.delete(id));
-      return next;
-    });
-  }
-
-  function goPagar() {
-    // Por ahora solo muestra payload mock en consola
     const payload = {
-      ruc: data.ruc,
-      contribuyente: data.contribuyente,
-      seleccionados: Array.from(selected),
-      totalSeleccionado: Array.from(selected).reduce((sum, id) => {
-        const all = [...predialRows, ...arbRows, ...papRows, ...vehRows];
-        const row = all.find((x) => x.id === id);
-        return sum + (row?.deuda || 0);
-      }, 0),
+      tipo_doc: Number(tipoDoc),
+      nro_doc: nroDocFinal,
+      correo_electronico: correo.trim(),
+      celular: celular.trim(),
     };
-    console.log("PAGO PAYLOAD =>", payload);
-    alert("Mock: items seleccionados enviados a pago (mira consola).");
+
+    console.log("LOGIN PAYLOAD =>", payload);
+
+    // Simulación: luego lo conectas a API
+    navigate("/dashboard");
   }
 
   return (
     <motion.div
-      className="min-h-screen bg-slate-100 flex flex-col"
+      className="w-screen h-screen bg-slate-200"
       variants={container}
       initial="hidden"
       animate="show"
     >
-      {/* Header */}
-      <header className="relative bg-white shadow px-4 py-6">
-        <motion.button
+      <div className="w-full h-full flex flex-col bg-white overflow-hidden">
+        {/* HEADER (mismo concepto Home) */}
+        <motion.header
           variants={itemUp}
-          onClick={() => navigate("/dashboard")}
-          className="absolute left-4 top-4 w-12 h-12 rounded-xl bg-slate-100 text-2xl flex items-center justify-center active:scale-[0.95]"
-          aria-label="Volver"
+          className="
+            relative
+            bg-linear-to-b from-sky-600 to-blue-700
+            text-white
+            px-10 py-12
+            flex flex-col items-center
+            gap-6
+            shadow
+          "
         >
-          <BiArrowBack />
-        </motion.button>
-
-        <div className="flex items-center justify-center">
-          <motion.img
+          <motion.button
             variants={itemUp}
+            onClick={() => navigate("/")}
+            className="
+              absolute left-8 top-8
+              w-16 h-16
+              bg-white/15 border border-white/25
+              text-white text-4xl
+              flex items-center justify-center
+              active:scale-[0.95]
+            "
+            aria-label="Volver"
+            type="button"
+          >
+            <BiArrowBack />
+          </motion.button>
+
+          <img
             src={logo}
             alt="Municipalidad Provincial de Arequipa"
-            className="w-full max-w-220px object-contain"
+            className="h-24 md:h-28 object-contain bg-white/90 p-3"
           />
-        </div>
 
-        <motion.div variants={itemUp} className="mt-4 flex flex-col gap-1">
-          <div className="text-slate-700 font-extrabold">
-            RUC: <span className="font-mono">{data.ruc}</span>
+          <div className="text-center">
+            <h1 className="text-5xl md:text-6xl font-extrabold">
+              Pagos en Línea
+            </h1>
+            <p className="text-white/85 text-xl md:text-2xl mt-2">
+              Ingrese sus datos para continuar
+            </p>
           </div>
-          <div className="text-slate-500">
-            Total deudas: <span className="font-extrabold text-slate-800">{money(totalGeneral)}</span>
-          </div>
-        </motion.div>
-      </header>
+        </motion.header>
 
-      <main className="flex-1 px-4 py-6 max-w-5xl w-full mx-auto flex flex-col gap-4">
-        {/* Pagar total */}
-        <motion.div variants={itemUp} className="bg-white rounded-2xl shadow p-4 flex items-center justify-between">
-          <label className="flex items-center gap-3 text-slate-800 font-extrabold">
-            <input
-              type="checkbox"
-              className="w-6 h-6 accent-blue-600"
-              checked={allSelected}
-              onChange={toggleAll}
-            />
-            Pagar el total
-          </label>
-
-          <button
-            onClick={goPagar}
-            className="h-12 px-5 rounded-2xl bg-blue-600 text-white font-extrabold active:scale-[0.98]"
-            type="button"
-            disabled={selected.size === 0}
-            style={{ opacity: selected.size === 0 ? 0.5 : 1 }}
+        {/* BODY */}
+        <motion.main
+          variants={container}
+          className="flex-1 bg-slate-100 px-10 py-10 flex items-start justify-center"
+        >
+          <motion.form
+            onSubmit={handleSubmit}
+            variants={container}
+            className="
+              w-full
+              max-w-245
+              bg-white
+              shadow-2xl
+              rounded-none
+              p-10
+              flex flex-col gap-8
+            "
           >
-            Ir a pagar ({selected.size})
-          </button>
-        </motion.div>
+            {/* Error */}
+            {error && (
+              <motion.div
+                variants={itemUp}
+                className="border border-red-200 bg-red-50 text-red-700 p-5 font-extrabold text-xl"
+              >
+                {error}
+              </motion.div>
+            )}
 
-        {/* Secciones */}
-        <Section
-          title={data.predial.title}
-          total={totalPredial}
-          open={openPredial}
-          onToggle={() => setOpenPredial((s) => !s)}
-          accent="bg-slate-200"
-        >
-          <div className="text-sm text-slate-500 mb-3">
-            Cod. Contribuyente: <span className="font-mono">{data.contribuyente}</span>
-          </div>
-
-          <div className="overflow-auto">
-            <table className="w-full min-w-900px">
-              <thead>
-                <tr className="text-left text-slate-600">
-                  <th className="py-2 px-2"> </th>
-                  <th className="py-2 px-2 font-extrabold">Año-cuota</th>
-                  <th className="py-2 px-2 font-extrabold">Doc. de pago</th>
-                  <th className="py-2 px-2 font-extrabold">Fec. venc.</th>
-                  <th className="py-2 px-2 font-extrabold">Estado</th>
-                  <th className="py-2 px-2 font-extrabold text-right">Deuda a la fecha</th>
-                </tr>
-              </thead>
-              <tbody>
-                {predialRows.map((r) => (
-                  <tr key={r.id} className="border-t border-slate-200">
-                    <td className="py-3 px-2">
-                      <input
-                        type="checkbox"
-                        className="w-5 h-5 accent-blue-600"
-                        checked={selected.has(r.id)}
-                        onChange={() => toggleOne(r.id)}
-                      />
-                    </td>
-                    <td className="py-3 px-2">{r.anioCuota}</td>
-                    <td className="py-3 px-2">{r.docPago}</td>
-                    <td className="py-3 px-2">{r.venc}</td>
-                    <td className="py-3 px-2">
-                      <span className="text-green-700 font-bold">{r.estado || "Pendiente"}</span>
-                    </td>
-                    <td className="py-3 px-2 text-right font-extrabold">{money(r.deuda)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Section>
-
-        <Section
-          title={data.arbitrios.title}
-          total={totalArb}
-          open={openArb}
-          onToggle={() => setOpenArb((s) => !s)}
-          accent="bg-slate-200"
-        >
-          <div className="text-sm text-slate-500 mb-3">{data.arbitrios.referencia}</div>
-
-          <div className="overflow-auto">
-            <table className="w-full min-w-900px">
-              <thead>
-                <tr className="text-left text-slate-600">
-                  <th className="py-2 px-2"> </th>
-                  <th className="py-2 px-2 font-extrabold">Año-cuota</th>
-                  <th className="py-2 px-2 font-extrabold">Doc. de pago</th>
-                  <th className="py-2 px-2 font-extrabold">Fec. venc.</th>
-                  <th className="py-2 px-2 font-extrabold">Estado</th>
-                  <th className="py-2 px-2 font-extrabold text-right">Deuda a la fecha</th>
-                </tr>
-              </thead>
-              <tbody>
-                {arbRows.map((r) => (
-                  <tr key={r.id} className="border-t border-slate-200">
-                    <td className="py-3 px-2">
-                      <input
-                        type="checkbox"
-                        className="w-5 h-5 accent-blue-600"
-                        checked={selected.has(r.id)}
-                        onChange={() => toggleOne(r.id)}
-                      />
-                    </td>
-                    <td className="py-3 px-2">{r.anioCuota}</td>
-                    <td className="py-3 px-2">{r.docPago}</td>
-                    <td className="py-3 px-2">{r.venc}</td>
-                    <td className="py-3 px-2">
-                      <span className="text-green-700 font-bold">{r.estado || "Pendiente"}</span>
-                    </td>
-                    <td className="py-3 px-2 text-right font-extrabold">{money(r.deuda)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Section>
-
-        <Section
-          title={data.papeletas.title}
-          total={totalPap}
-          open={openPap}
-          onToggle={() => setOpenPap((s) => !s)}
-          accent="bg-slate-200"
-        >
-          <div className="flex flex-col gap-2">
-            {papRows.map((r) => (
-              <div key={r.id} className="border border-slate-200 rounded-xl p-3 flex items-center justify-between">
-                <label className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    className="w-5 h-5 accent-blue-600"
-                    checked={selected.has(r.id)}
-                    onChange={() => toggleOne(r.id)}
-                  />
-                  <span className="text-slate-600">{r.referencia}</span>
-                  <span className="font-extrabold text-slate-800">Placa: {r.placa}</span>
+            {/* FILA 1: Tipo doc + Nro doc (2 columnas) */}
+            <div className="grid grid-cols-2 gap-8">
+              <motion.div variants={itemUp} className="flex flex-col gap-3">
+                <label className="text-2xl font-extrabold text-slate-800">
+                  Tipo de Documento
                 </label>
-                <span className="font-extrabold">{money(r.deuda)}</span>
-              </div>
-            ))}
-          </div>
-        </Section>
+                <select
+                  value={tipoDoc}
+                  onChange={(e) => setTipoDoc(e.target.value)}
+                  className="
+                    h-20
+                    border border-slate-300
+                    px-5
+                    text-2xl
+                    bg-white
+                    focus:outline-none focus:ring-4 focus:ring-blue-300
+                  "
+                >
+                  {DOC_TYPES.map((d) => (
+                    <option key={d.value} value={d.value}>
+                      {d.label}
+                    </option>
+                  ))}
+                </select>
+              </motion.div>
 
-        <Section
-          title={data.vehicular.title}
-          total={totalVeh}
-          open={openVeh}
-          onToggle={() => setOpenVeh((s) => !s)}
-          accent="bg-slate-200"
+              <motion.div variants={itemUp} className="flex flex-col gap-3">
+                <label className="text-2xl font-extrabold text-slate-800">
+                  Nro. de Documento
+                </label>
+                <input
+                  value={nroDoc}
+                  onChange={(e) => setNroDoc(onlyDigits(e.target.value))}
+                  disabled={isSD}
+                  placeholder={isSD ? "S/D usa 0 automáticamente" : `Ingrese ${tipoDocLabel}`}
+                  className={`
+                    h-20
+                    border
+                    px-5
+                    text-2xl
+                    focus:outline-none focus:ring-4 focus:ring-blue-300
+                    ${isSD ? "border-slate-200 bg-slate-100 text-slate-400" : "border-slate-300 bg-white"}
+                  `}
+                  inputMode="numeric"
+                />
+                {isSD && (
+                  <div className="text-sm text-slate-500">
+                    * S/D: se enviará nro_doc = 0
+                  </div>
+                )}
+              </motion.div>
+            </div>
+
+            {/* FILA 2: Correo */}
+            <motion.div variants={itemUp} className="flex flex-col gap-3">
+              <label className="text-2xl font-extrabold text-slate-800">
+                Correo Electrónico
+              </label>
+              <input
+                type="email"
+                value={correo}
+                onChange={(e) => setCorreo(e.target.value)}
+                placeholder="correo@ejemplo.com"
+                className="
+                  h-20
+                  border border-slate-300
+                  px-5
+                  text-2xl
+                  bg-white
+                  focus:outline-none focus:ring-4 focus:ring-blue-300
+                "
+                autoComplete="email"
+              />
+            </motion.div>
+
+            {/* FILA 3: Celular */}
+            <motion.div variants={itemUp} className="flex flex-col gap-3">
+              <label className="text-2xl font-extrabold text-slate-800">
+                Número de Celular
+              </label>
+              <input
+                value={celular}
+                onChange={(e) => setCelular(onlyDigits(e.target.value).slice(0, 9))}
+                placeholder="Ej. 987654321"
+                className="
+                  h-20
+                  border border-slate-300
+                  px-5
+                  text-2xl
+                  bg-white
+                  focus:outline-none focus:ring-4 focus:ring-blue-300
+                "
+                inputMode="numeric"
+              />
+              <div className="text-sm text-slate-500">
+                * Solo números (9 dígitos)
+              </div>
+            </motion.div>
+
+            {/* SUBMIT */}
+            <motion.button
+              variants={itemUp}
+              whileTap={{ scale: 0.97 }}
+              className="
+                h-24
+                text-white
+                text-3xl
+                font-extrabold
+                shadow-xl
+                active:opacity-95
+              "
+              style={{ backgroundColor: COLORS.azul }}
+              type="submit"
+            >
+              <span className="inline-flex items-center justify-center gap-4">
+                <BiLogInCircle className="text-5xl" />
+                Buscar
+              </span>
+            </motion.button>
+
+            <motion.div
+              variants={itemUp}
+              className="text-center text-slate-400 text-base"
+            >
+              Municipalidad Provincial de Arequipa
+            </motion.div>
+          </motion.form>
+        </motion.main>
+
+        {/* FOOTER */}
+        <motion.footer
+          variants={itemUp}
+          className="py-6 text-center text-slate-400 text-base bg-white border-t"
         >
-          {vehRows.length === 0 ? (
-            <div className="text-slate-500">No se encontraron deudas vehiculares.</div>
-          ) : (
-            <div className="text-slate-500">Aquí irá la tabla vehicular.</div>
-          )}
-        </Section>
-      </main>
+          © Kiosko Municipal
+        </motion.footer>
+      </div>
     </motion.div>
   );
 }

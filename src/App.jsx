@@ -3,6 +3,7 @@ import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import BusquedaExpedientes from "./pages/BusquedaExpedientes";
 import Login from "./pages/Login";
+import EstadoCuenta from "./pages/EstadoCuenta";
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
 
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/estado-cuenta" element={<EstadoCuenta />} />
 
       </Routes>
     </BrowserRouter>

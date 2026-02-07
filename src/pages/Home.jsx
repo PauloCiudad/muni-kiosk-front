@@ -114,8 +114,8 @@ export default function Home() {
         <motion.header
           variants={itemUp}
           className="
-            bg-linear-to-b from-sky-600 to-blue-700
-            text-white
+            bg-linear-to-b from-white-100 to-slate-200
+            text-blue-700
             px-10 py-12
             flex flex-col items-center
             gap-6
@@ -125,14 +125,14 @@ export default function Home() {
           <img
             src={logo}
             alt="Logo"
-            className="h-24 md:h-28 object-contain bg-white/90 p-3"
+            className="h-24 md:h-70 object-contain p-3"
           />
 
           <div className="text-center">
             <h1 className="text-5xl md:text-6xl font-extrabold">
-              Kiosko Municipal
+              Municipalidad Provincial de Arequipa
             </h1>
-            <p className="text-white/85 text-xl md:text-2xl mt-2">
+            <p className="text-blue-700 text-xl md:text-2xl mt-2">
               Seleccione una opción
             </p>
           </div>
