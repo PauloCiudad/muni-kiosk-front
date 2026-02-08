@@ -115,7 +115,7 @@ export default function Home() {
           variants={itemUp}
           className="
             bg-linear-to-b from-white-100 to-slate-200
-            text-blue-700
+            text-[#0F70B3]
             px-10 py-12
             flex flex-col items-center
             gap-6
@@ -132,7 +132,7 @@ export default function Home() {
             <h1 className="text-5xl md:text-6xl font-extrabold">
               Municipalidad Provincial de Arequipa
             </h1>
-            <p className="text-blue-700 text-xl md:text-2xl mt-2">
+            <p className="text-[#0F70B3] text-xl md:text-2xl mt-2">
               Seleccione una opción
             </p>
           </div>

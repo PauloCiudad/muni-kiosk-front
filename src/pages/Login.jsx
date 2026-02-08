@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { BiArrowBack, BiLogInCircle } from "react-icons/bi";
 import logo from "../assets/logos_juntos.png";
+import { login } from "../services/authService";
 
 const container = {
   hidden: { opacity: 0 },
@@ -40,38 +41,58 @@ export default function Login() {
   const [celular, setCelular] = useState("");
   const [error, setError] = useState("");
 
+  // ✅ backend only
+  const [loading, setLoading] = useState(false);
+
   const isSD = tipoDoc === "5";
 
   const tipoDocLabel = useMemo(() => {
     return DOC_TYPES.find((d) => d.value === tipoDoc)?.label ?? "";
   }, [tipoDoc]);
 
-  function handleSubmit(e) {
-    e.preventDefault();
-    setError("");
+  // ✅ backend only: ahora es async
+  async function handleSubmit(e) {
+  e.preventDefault();
+  setError("");
+  setLoading(true);
 
+  try {
     const nroDocFinal = isSD ? "0" : nroDoc.trim();
 
     if (!tipoDoc) return setError("Seleccione el tipo de documento.");
-    if (!isSD && !nroDocFinal) return setError("Ingrese el número de documento.");
+    if (tipoDoc !== "1") return setError("Por el momento el login solo está habilitado con DNI.");
+    if (!nroDocFinal) return setError("Ingrese el número de documento.");
+    if (nroDocFinal.length !== 8) return setError("El DNI debe tener 8 dígitos.");
     if (!correo.trim()) return setError("Ingrese el correo electrónico.");
     if (!celular.trim()) return setError("Ingrese el número de celular.");
-
     if (!correo.includes("@")) return setError("Correo inválido.");
-    if (celular.length < 9) return setError("El celular debe tener 9 dígitos.");
+    if (celular.trim().length !== 9) return setError("El celular debe tener 9 dígitos.");
 
-    const payload = {
-      tipo_doc: Number(tipoDoc),
-      nro_doc: nroDocFinal,
-      correo_electronico: correo.trim(),
-      celular: celular.trim(),
+    const body = {
+      nroDni: nroDocFinal,
+      correoElectronico: correo.trim(),
+      nroCelular: celular.trim(),
     };
 
-    console.log("LOGIN PAYLOAD =>", payload);
+    const { token, refreshToken, data } = await login(body);
 
-    // Simulación: luego lo conectas a API
-    navigate("/dashboard");
+    // Guardamos tokens
+    localStorage.setItem("auth_token", token);
+    if (refreshToken) localStorage.setItem("refresh_token", refreshToken);
+
+    // Guardar persona (opcional)
+    if (data?.dato?.persona) {
+      localStorage.setItem("persona", JSON.stringify(data.dato.persona));
+    }
+
+    navigate("/Estado-Cuenta");
+  } catch (err) {
+    setError(err?.message || "No se pudo iniciar sesión.");
+  } finally {
+    setLoading(false);
   }
+}
+
 
   return (
     <motion.div
@@ -87,7 +108,7 @@ export default function Login() {
           className="
             relative
             bg-linear-to-b from-white-100 to-slate-200
-            text-blue-700
+            text-[#0F70B3]
             px-10 py-12
             flex flex-col items-center
             gap-6
@@ -121,7 +142,7 @@ export default function Login() {
             <h1 className="text-5xl md:text-6xl font-extrabold">
               Pagos en Línea
             </h1>
-            <p className="text-blue-700 text-xl md:text-2xl mt-2">
+            <p className="text-[#0F70B3] text-xl md:text-2xl mt-2">
               Ingrese sus datos para continuar
             </p>
           </div>
@@ -188,7 +209,7 @@ export default function Login() {
                 <input
                   value={nroDoc}
                   onChange={(e) => setNroDoc(onlyDigits(e.target.value))}
-                  disabled={isSD}
+                  disabled={isSD || loading}
                   placeholder={isSD ? "S/D usa 0 automáticamente" : `Ingrese ${tipoDocLabel}`}
                   className={`
                     h-20
@@ -217,6 +238,7 @@ export default function Login() {
                 type="email"
                 value={correo}
                 onChange={(e) => setCorreo(e.target.value)}
+                disabled={loading}
                 placeholder="correo@ejemplo.com"
                 className="
                   h-20
@@ -238,6 +260,7 @@ export default function Login() {
               <input
                 value={celular}
                 onChange={(e) => setCelular(onlyDigits(e.target.value).slice(0, 9))}
+                disabled={loading}
                 placeholder="Ej. 987654321"
                 className="
                   h-20
@@ -266,12 +289,13 @@ export default function Login() {
                 shadow-xl
                 active:opacity-95
               "
-              style={{ backgroundColor: COLORS.azul }}
+              style={{ backgroundColor: COLORS.azul, opacity: loading ? 0.8 : 1 }}
               type="submit"
+              disabled={loading}
             >
               <span className="inline-flex items-center justify-center gap-4">
                 <BiLogInCircle className="text-5xl" />
-                Buscar
+                {loading ? "Validando..." : "Buscar"}
               </span>
             </motion.button>
           </motion.form>
