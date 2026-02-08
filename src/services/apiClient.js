@@ -4,7 +4,7 @@ function getToken() {
   return localStorage.getItem("auth_token");
 }
 
-export async function apiRequest(path, { method = "GET", body, auth = true } = {}) {
+export async function apiRequest(path, { method = "POST", body, auth = true } = {}) {
   const headers = { "Content-Type": "application/json" };
 
   if (auth) {
