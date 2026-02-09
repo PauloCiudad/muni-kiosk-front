@@ -41,7 +41,6 @@ export default function Login() {
   const [celular, setCelular] = useState("");
   const [error, setError] = useState("");
 
-  // ✅ backend only
   const [loading, setLoading] = useState(false);
 
   const isSD = tipoDoc === "5";
@@ -50,7 +49,6 @@ export default function Login() {
     return DOC_TYPES.find((d) => d.value === tipoDoc)?.label ?? "";
   }, [tipoDoc]);
 
-  // ✅ backend only: ahora es async
   async function handleSubmit(e) {
   e.preventDefault();
   setError("");
@@ -76,7 +74,7 @@ export default function Login() {
 
     const { token, refreshToken, data } = await login(body);
 
-    // Guardamos tokens
+    // Se guardan tokens
     localStorage.setItem("auth_token", token);
     if (refreshToken) localStorage.setItem("refresh_token", refreshToken);
 
@@ -84,8 +82,8 @@ export default function Login() {
     if (data?.dato?.persona) {
       localStorage.setItem("persona", JSON.stringify(data.dato.persona));
     }
-
-    navigate("/Estado-Cuenta");
+    navigate("/busqueda-contribuyente");
+    
   } catch (err) {
     setError(err?.message || "No se pudo iniciar sesión.");
   } finally {
@@ -102,7 +100,7 @@ export default function Login() {
       animate="show"
     >
       <div className="w-full h-full flex flex-col bg-white overflow-hidden">
-        {/* HEADER (mismo concepto Home) */}
+        {/* HEADER */}
         <motion.header
           variants={itemUp}
           className="
@@ -306,7 +304,7 @@ export default function Login() {
           variants={itemUp}
           className="py-6 text-center text-slate-400 text-base bg-white border-t"
         >
-          © Kiosko Municipal
+          © Municipalidad Provincial de Arequipa - Todos los derechos reservados
         </motion.footer>
       </div>
     </motion.div>
