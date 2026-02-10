@@ -49,47 +49,32 @@ export default function Login() {
     return DOC_TYPES.find((d) => d.value === tipoDoc)?.label ?? "";
   }, [tipoDoc]);
 
-  async function handleSubmit(e) {
+  // ...tu mismo código arriba
+
+async function handleSubmit(e) {
   e.preventDefault();
   setError("");
-  setLoading(true);
 
-  try {
-    const nroDocFinal = isSD ? "0" : nroDoc.trim();
+  const nroDocFinal = isSD ? "0" : nroDoc.trim();
 
-    if (!tipoDoc) return setError("Seleccione el tipo de documento.");
-    if (tipoDoc !== "1") return setError("Por el momento el login solo está habilitado con DNI.");
-    if (!nroDocFinal) return setError("Ingrese el número de documento.");
-    if (nroDocFinal.length !== 8) return setError("El DNI debe tener 8 dígitos.");
-    if (!correo.trim()) return setError("Ingrese el correo electrónico.");
-    if (!celular.trim()) return setError("Ingrese el número de celular.");
-    if (!correo.includes("@")) return setError("Correo inválido.");
-    if (celular.trim().length !== 9) return setError("El celular debe tener 9 dígitos.");
+  if (!tipoDoc) return setError("Seleccione el tipo de documento.");
+  if (tipoDoc !== "1") return setError("Por el momento el login solo está habilitado con DNI.");
+  if (!nroDocFinal) return setError("Ingrese el número de documento.");
+  if (nroDocFinal.length !== 8) return setError("El DNI debe tener 8 dígitos.");
+  if (!correo.trim()) return setError("Ingrese el correo electrónico.");
+  if (!celular.trim()) return setError("Ingrese el número de celular.");
+  if (!correo.includes("@")) return setError("Correo inválido.");
+  if (celular.trim().length !== 9) return setError("El celular debe tener 9 dígitos.");
 
-    const body = {
-      nroDni: nroDocFinal,
-      correoElectronico: correo.trim(),
-      nroCelular: celular.trim(),
-    };
-
-    const { token, refreshToken, data } = await login(body);
-
-    // Se guardan tokens
-    localStorage.setItem("auth_token", token);
-    if (refreshToken) localStorage.setItem("refresh_token", refreshToken);
-
-    // Guardar persona (opcional)
-    if (data?.dato?.persona) {
-      localStorage.setItem("persona", JSON.stringify(data.dato.persona));
-    }
-    navigate("/busqueda-contribuyente");
-    
-  } catch (err) {
-    setError(err?.message || "No se pudo iniciar sesión.");
-  } finally {
-    setLoading(false);
-  }
+  // ✅ SIN BACKEND: solo navegamos y mandamos el documento
+  navigate("/estadocuenta", {
+    state: {
+      nroDoc: nroDocFinal,
+      tipoDocLabel, // opcional
+    },
+  });
 }
+
 
 
   return (

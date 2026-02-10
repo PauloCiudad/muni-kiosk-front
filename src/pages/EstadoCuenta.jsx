@@ -98,18 +98,34 @@ export default function EstadoCuenta() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Recibimos data desde BusquedaContribuyente
-  const contribuyente = location.state?.contribuyente || null;
-  const deudas = location.state?.deudas || null;
+  // ✅ Recibimos nroDoc desde Login
+  const nroDoc = location.state?.nroDoc || "";
+  const tipoDocLabel = location.state?.tipoDocLabel || "DNI";
 
-  // Modal confirmación Salir
-  const [confirmSalir, setConfirmSalir] = useState(false);
-
-  // Si alguien entra directo sin state, lo mandamos a búsqueda
-  if (!contribuyente || !deudas) {
-    navigate("/busqueda-contribuyente", { replace: true });
+  // Si entran directo sin state, los mandamos al login
+  if (!nroDoc) {
+    navigate("/login", { replace: true });
     return null;
   }
+
+  // ✅ MOCKS: por ahora todo fijo, pero el documento sí viene del login
+  const contribuyente = useMemo(() => {
+    return {
+      nombreRazonSocial: "Michell & CIA",
+      codigoContribuyente: "227309",
+      tipoDoc: tipoDocLabel,
+      nroDoc,
+    };
+  }, [nroDoc, tipoDocLabel]);
+
+  const deudas = useMemo(() => {
+    return {
+      predial: 16459.1,
+      vehicular: 9100.0,
+      arbitrios: 22104.4,
+      transito: 9177.2,
+    };
+  }, []);
 
   const total = useMemo(() => {
     return (
@@ -120,23 +136,16 @@ export default function EstadoCuenta() {
     );
   }, [deudas]);
 
-  function goBack() {
-    navigate(-1);
-  }
-
-  function handleNuevoContribuyente() {
-    navigate("/busqueda-contribuyente");
-  }
+  // Confirmación salir
+  const [confirmSalir, setConfirmSalir] = useState(false);
 
   function handleSalirClick() {
     setConfirmSalir(true);
   }
-
   function handleSalirConfirm() {
     setConfirmSalir(false);
-    navigate("/"); // Home/Index
+    navigate("/"); // Home
   }
-
   function handleSalirCancel() {
     setConfirmSalir(false);
   }
@@ -164,7 +173,7 @@ export default function EstadoCuenta() {
         >
           <motion.button
             variants={itemUp}
-            onClick={goBack}
+            onClick={() => navigate(-1)}
             className="
               absolute left-8 top-8
               w-16 h-16
@@ -201,7 +210,7 @@ export default function EstadoCuenta() {
           className="flex-1 bg-slate-100 px-10 py-10 overflow-auto"
         >
           <div className="max-w-6xl mx-auto">
-            {/* Datos contribuyente */}
+            {/* Contribuyente */}
             <motion.div
               variants={itemUp}
               className="
@@ -226,7 +235,7 @@ export default function EstadoCuenta() {
               </div>
             </motion.div>
 
-            {/* Total grande */}
+            {/* Total */}
             <motion.div
               variants={itemUp}
               className="
@@ -265,7 +274,7 @@ export default function EstadoCuenta() {
               </div>
             </motion.div>
 
-            {/* Cards 2x2 (Impuestos) */}
+            {/* 4 impuestos */}
             <div className="grid grid-cols-2 gap-10">
               <SummaryCard
                 title="Impuesto Predial"
@@ -274,7 +283,6 @@ export default function EstadoCuenta() {
                 bgClass="bg-blue-700 hover:bg-blue-800"
                 onClick={() => navigate("/predial")}
               />
-
               <SummaryCard
                 title="Impuesto Vehicular"
                 icon={<BiCar />}
@@ -282,7 +290,6 @@ export default function EstadoCuenta() {
                 bgClass="bg-amber-500 hover:bg-amber-600"
                 onClick={() => navigate("/vehicular")}
               />
-
               <SummaryCard
                 title="Arbitrios Municipales"
                 icon={<BiBuildingHouse />}
@@ -290,7 +297,6 @@ export default function EstadoCuenta() {
                 bgClass="bg-slate-700 hover:bg-slate-800"
                 onClick={() => navigate("/arbitrios")}
               />
-
               <SummaryCard
                 title="Infracciones de Tránsito"
                 icon={<BiTrafficCone />}
@@ -300,17 +306,16 @@ export default function EstadoCuenta() {
               />
             </div>
 
-            {/* Botones GRANDES debajo (como los principales) */}
+            {/* Botones GRANDES debajo */}
             <div className="grid grid-cols-2 gap-10 mt-12">
               <SummaryCard
                 title="Buscar nuevo contribuyente"
                 icon={<BiUserPlus />}
                 amount={null}
-                subtitle="Nueva búsqueda"
+                subtitle="Volver al login"
                 bgClass="bg-slate-700 hover:bg-slate-800"
-                onClick={handleNuevoContribuyente}
+                onClick={() => navigate("/login")}
               />
-
               <SummaryCard
                 title="Salir"
                 icon={<BiExit />}
@@ -363,7 +368,7 @@ export default function EstadoCuenta() {
                     ¿Desea salir?
                   </div>
                   <div className="mt-3 text-slate-600 text-2xl">
-                    Se cerrará la consulta y volverá al inicio del kiosko.
+                    Volverá al inicio del kiosko.
                   </div>
                 </div>
 
