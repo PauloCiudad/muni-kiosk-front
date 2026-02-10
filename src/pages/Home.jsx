@@ -145,14 +145,14 @@ export default function Home() {
         >
           <div className="grid grid-cols-2 gap-10 h-full">
             <MosaicTile
-              bgClass="bg-blue-700 hover:bg-blue-800"
+              bgClass="bg-[#FE982C] hover:bg-[#E58A20]"
               icon={<BiSearchAlt />}
               label="Búsqueda de expedientes"
               onClick={() => navigate("/busqueda-expedientes")}
             />
 
             <MosaicTile
-              bgClass="bg-amber-500 hover:bg-amber-600"
+              bgClass="bg-[#2E8FED] hover:bg-[#1F6FD9]"
               icon={<BiCreditCard />}
               label="Pagos en línea"
               onClick={() => navigate("/login")}
@@ -161,7 +161,7 @@ export default function Home() {
             <PhotoTile />
 
             <MosaicTile
-              bgClass="bg-slate-600 hover:bg-slate-700"
+              bgClass="bg-[#1CB2B0] hover:bg-[#18979A]"
               icon={<BiSupport />}
               label="Consultas en línea"
               onClick={() => navigate("/consultas")}
