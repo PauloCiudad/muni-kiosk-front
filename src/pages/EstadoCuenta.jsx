@@ -1,10 +1,4 @@
-import {
-  useMemo,
-  useRef,
-  useState,
-  useLayoutEffect,
-  useEffect,
-} from "react";
+import { useMemo, useRef, useState, useLayoutEffect, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -19,6 +13,12 @@ import {
   BiX,
 } from "react-icons/bi";
 import logo from "../assets/logos_juntos.png";
+import {
+  traerDeudaImpuestos,
+  traerPredios,
+  traerDeudaArbitrios,
+  traerDeudaInfracciones,
+} from "../services/impuestosService";
 
 const container = {
   hidden: { opacity: 0 },
@@ -49,8 +49,16 @@ function parseDateDMY(dmy) {
   return new Date(Number(yyyy), Number(mm) - 1, Number(dd));
 }
 
+function isoToDMY(iso) {
+  if (!iso) return "";
+  // iso: YYYY-MM-DD
+  const [y, m, d] = String(iso).slice(0, 10).split("-");
+  if (!y || !m || !d) return "";
+  return `${d}/${m}/${y}`;
+}
+
 /**
- * ✅ Gate por "año más antiguo pendiente" (SOLO Predial y Arbitrios):
+ * Gate por "año más antiguo pendiente" (SOLO Predial y Arbitrios):
  * habilita únicamente el año más antiguo que aún no está completamente seleccionado.
  */
 function buildOldestYearGate(rows, yearGetter, selectedSet) {
@@ -73,14 +81,12 @@ function buildOldestYearGate(rows, yearGetter, selectedSet) {
     }
   }
 
-  // Si todo está completo, habilita todos
   if (oldestIncompleteYear === null) return () => true;
-
   return (row) => yearGetter(row) === oldestIncompleteYear;
 }
 
 /**
- * ✅ Scroll X persistente por tabla (no se reinicia al marcar check)
+ * Scroll X persistente por tabla
  */
 function ScrollXTable({ storageKey, scrollStoreRef, minWidthClass, children }) {
   const scrollerRef = useRef(null);
@@ -109,11 +115,7 @@ function HeadCell({ children, align = "left" }) {
   return (
     <div
       className={`text-slate-500 text-lg font-extrabold ${
-        align === "right"
-          ? "text-right"
-          : align === "center"
-          ? "text-center"
-          : ""
+        align === "right" ? "text-right" : align === "center" ? "text-center" : ""
       }`}
     >
       {children}
@@ -125,18 +127,8 @@ function BodyCell({ children, align = "left", strong = false, muted = false }) {
   return (
     <div
       className={`text-xl ${
-        muted
-          ? "text-slate-400"
-          : strong
-          ? "font-extrabold text-slate-900"
-          : "text-slate-700"
-      } ${
-        align === "right"
-          ? "text-right"
-          : align === "center"
-          ? "text-center"
-          : ""
-      }`}
+        muted ? "text-slate-400" : strong ? "font-extrabold text-slate-900" : "text-slate-700"
+      } ${align === "right" ? "text-right" : align === "center" ? "text-center" : ""}`}
     >
       {children}
     </div>
@@ -153,9 +145,7 @@ function CheckboxCell({ checked, onToggle, disabled }) {
           if (!disabled) onToggle?.();
         }}
         disabled={disabled}
-        className={`w-7 h-7 accent-blue-700 ${
-          disabled ? "opacity-40 cursor-not-allowed" : ""
-        }`}
+        className={`w-7 h-7 accent-blue-700 ${disabled ? "opacity-40 cursor-not-allowed" : ""}`}
       />
     </div>
   );
@@ -167,18 +157,14 @@ function TableShell({ title, subtitle, rightStat, children }) {
       <div className="flex items-start justify-between gap-8">
         <div>
           <div className="text-slate-500 text-xl">Detalle</div>
-          <div className="text-slate-900 text-4xl font-extrabold mt-2">
-            {title}
-          </div>
+          <div className="text-slate-900 text-4xl font-extrabold mt-2">{title}</div>
           <div className="mt-2 text-slate-600 text-xl">{subtitle}</div>
         </div>
 
         {rightStat ? (
           <div className="text-right">
             <div className="text-slate-500 text-lg">{rightStat.label}</div>
-            <div className="text-slate-900 text-4xl font-extrabold mt-2">
-              {rightStat.value}
-            </div>
+            <div className="text-slate-900 text-4xl font-extrabold mt-2">{rightStat.value}</div>
           </div>
         ) : null}
       </div>
@@ -229,99 +215,190 @@ function SummaryCard({ title, icon, amount, bgClass, active, onClick }) {
       </div>
 
       <div className="relative">
-        <div className="text-2xl md:text-3xl font-extrabold leading-tight">
-          {title}
-        </div>
-        <div className="mt-3 text-4xl md:text-5xl font-extrabold">
-          {formatPEN(amount)}
-        </div>
-        <div className="mt-2 text-white/85 text-lg">
-          {active ? "Mostrando detalle" : "Ver detalle"}
-        </div>
+        <div className="text-2xl md:text-3xl font-extrabold leading-tight">{title}</div>
+        <div className="mt-3 text-4xl md:text-5xl font-extrabold">{formatPEN(amount)}</div>
+        <div className="mt-2 text-white/85 text-lg">{active ? "Mostrando detalle" : "Ver detalle"}</div>
       </div>
     </motion.button>
   );
 }
 
 /**
- * ✅ Tabs horizontales reales
+ *Tabs tipo navegador (con línea inferior y tab activo “encima”)
  */
-function ContribuyenteTabs({ items, activeIndex, onChange }) {
+function ContribuyenteTabsBrowser({ items, activeIndex, onChange }) {
+  const scrollerRef = useRef(null);
+  const [canLeft, setCanLeft] = useState(false);
+  const [canRight, setCanRight] = useState(false);
+
+  function updateArrows() {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const max = el.scrollWidth - el.clientWidth;
+    setCanLeft(el.scrollLeft > 5);
+    setCanRight(el.scrollLeft < max - 5);
+  }
+
+  function scrollByAmount(dir) {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const amount = Math.max(380, Math.floor(el.clientWidth * 0.65));
+    el.scrollBy({ left: dir * amount, behavior: "smooth" });
+  }
+
+  function scrollTabIntoView(idx) {
+    const el = scrollerRef.current;
+    if (!el) return;
+
+    const tab = el.querySelector(`[data-tab-index="${idx}"]`);
+    if (!tab) return;
+
+    const tabLeft = tab.offsetLeft;
+    const tabRight = tabLeft + tab.offsetWidth;
+    const viewLeft = el.scrollLeft;
+    const viewRight = viewLeft + el.clientWidth;
+
+    if (tabLeft < viewLeft) {
+      el.scrollTo({ left: Math.max(0, tabLeft - 24), behavior: "smooth" });
+    } else if (tabRight > viewRight) {
+      el.scrollTo({
+        left: Math.min(el.scrollWidth, tabRight - el.clientWidth + 24),
+        behavior: "smooth",
+      });
+    }
+  }
+
+  useEffect(() => {
+    updateArrows();
+    const el = scrollerRef.current;
+    if (!el) return;
+
+    const onResize = () => updateArrows();
+    window.addEventListener("resize", onResize);
+
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  useEffect(() => {
+    scrollTabIntoView(activeIndex);
+    const t = setTimeout(updateArrows, 250);
+    return () => clearTimeout(t);
+  }, [activeIndex]);
+
   return (
     <motion.div
       variants={itemUp}
-      className="
-        bg-white shadow-2xl border border-slate-200
-        rounded-none
-        px-8 py-6
-        mb-10
-      "
+      className="bg-white shadow-2xl border border-slate-200 rounded-none mb-10"
     >
-      <div className="text-slate-500 text-xl">Seleccione contribuyente</div>
+      <div className="px-8 pt-6 text-slate-500 text-xl">Seleccione contribuyente</div>
 
-      <div className="mt-6 w-full overflow-x-auto">
-        <div className="flex gap-4 min-w-max">
-          {items.map((c, idx) => {
-            const active = idx === activeIndex;
+      <div className="mt-4 px-4 pb-0">
+        <div className="flex items-stretch gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              safePlayClick();
+              scrollByAmount(-1);
+            }}
+            disabled={!canLeft}
+            className={`
+              w-20
+              bg-slate-100 hover:bg-slate-200
+              border border-slate-200
+              text-slate-800
+              text-5xl
+              rounded-none
+              flex items-center justify-center
+              active:scale-[0.97]
+              ${!canLeft ? "opacity-30 cursor-not-allowed" : ""}
+            `}
+            aria-label="Desplazar a la izquierda"
+          >
+            ‹
+          </button>
 
-            return (
-              <button
-                key={`${c.codigo}-${idx}`}
-                type="button"
-                onClick={() => {
-                  safePlayClick();
-                  onChange(idx);
-                }}
-                className={`
-                  px-8 py-4
-                  text-2xl font-extrabold
-                  whitespace-nowrap
-                  rounded-none
-                  border
-                  shadow
-                  transition
-                  active:scale-[0.99]
-                  ${
-                    active
-                      ? "bg-blue-700 border-blue-700 text-white"
-                      : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
-                  }
-                `}
-              >
-                {c.nombre}
-                <span
-                  className={`${
-                    active ? "text-white/80" : "text-slate-500"
-                  } font-bold ml-4`}
-                >
-                  #{c.codigo}
-                </span>
-              </button>
-            );
-          })}
+          <div ref={scrollerRef} className="flex-1 overflow-x-auto" onScroll={updateArrows}>
+            <div className="min-w-max flex gap-0">
+              {items.map((c, idx) => {
+                const active = idx === activeIndex;
+
+                return (
+                  <button
+                    key={`${c.codigo}-${idx}`}
+                    data-tab-index={idx}
+                    type="button"
+                    onClick={() => {
+                      safePlayClick();
+                      onChange(idx);
+                    }}
+                    className={`
+                      relative
+                      px-8 py-4
+                      text-2xl font-extrabold
+                      whitespace-nowrap
+                      border-t border-l border-r
+                      ${active ? "bg-white text-slate-900 border-slate-300" : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"}
+                      rounded-t-xl
+                      transition
+                    `}
+                  >
+                    <span>{c.nombre}</span>
+                    <span className={`ml-4 font-bold ${active ? "text-slate-500" : "text-slate-400"}`}>
+                      #{c.codigo}
+                    </span>
+
+                    {active && <span className="absolute left-0 right-0 -bottom-0.5 h-0.75 bg-white" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              safePlayClick();
+              scrollByAmount(1);
+            }}
+            disabled={!canRight}
+            className={`
+              w-20
+              bg-slate-100 hover:bg-slate-200
+              border border-slate-200
+              text-slate-800
+              text-5xl
+              rounded-none
+              flex items-center justify-center
+              active:scale-[0.97]
+              ${!canRight ? "opacity-30 cursor-not-allowed" : ""}
+            `}
+            aria-label="Desplazar a la derecha"
+          >
+            ›
+          </button>
         </div>
       </div>
 
-      <div className="mt-6 text-slate-700 text-xl">
-        <span className="font-extrabold">Activo:</span>{" "}
-        {items[activeIndex]?.nombre} —{" "}
-        <span className="font-extrabold">Código:</span>{" "}
-        {items[activeIndex]?.codigo}
-        {items[activeIndex]?.tipoPersona ? (
-          <>
-            {" "}
-            — <span className="font-extrabold">Tipo:</span>{" "}
-            {items[activeIndex].tipoPersona}
-          </>
+      <div className="border-b border-slate-300" />
+
+      <div className="px-8 py-6">
+        <div className="text-slate-700 text-xl">
+          <span className="font-extrabold">Activo:</span> {items[activeIndex]?.nombre} —{" "}
+          <span className="font-extrabold">Código:</span> {items[activeIndex]?.codigo}
+          {items[activeIndex]?.tipoPersona ? (
+            <>
+              {" "}
+              — <span className="font-extrabold">Tipo:</span> {items[activeIndex].tipoPersona}
+            </>
+          ) : null}
+        </div>
+
+        {items[activeIndex]?.direccion ? (
+          <div className="mt-3 text-slate-600 text-xl">
+            <span className="font-extrabold">Dirección:</span> {items[activeIndex].direccion}
+          </div>
         ) : null}
       </div>
-
-      {items[activeIndex]?.direccion ? (
-        <div className="mt-3 text-slate-600 text-xl">
-          <span className="font-extrabold">Dirección:</span>{" "}
-          {items[activeIndex].direccion}
-        </div>
-      ) : null}
     </motion.div>
   );
 }
@@ -333,26 +410,19 @@ export default function EstadoCuenta() {
   const nroDoc = location.state?.nroDoc || "";
   const tipoDocLabel = location.state?.tipoDocLabel || "DNI";
 
-  // Lista de contribuyentes desde login
   const contribuyentes = useMemo(() => {
     const list = location.state?.contribuyentes;
-    if (Array.isArray(list) && list.length > 0) return list;
+    if (!Array.isArray(list) || list.length === 0) return [];
 
-    // MOCKS por si no mandas state (para ver UI)
-    return [
-      {
-        codigo: "227309",
-        nombre: "Michell & CIA",
-        direccion: "Av. Ejemplo 123 - Arequipa",
-        tipoPersona: "JURÍDICA",
-      },
-      {
-        codigo: "991122",
-        nombre: "Juan Pérez",
-        direccion: "Calle Demo 456 - Arequipa",
-        tipoPersona: "NATURAL",
-      },
-    ];
+    // Normalizamos el response real:
+    // adm_vcodigo, per_vnombre_completo, dir_vdireccion_completa, tipadm_vabreviacion
+    return list.map((c) => ({
+      codigo: c.adm_vcodigo ?? c.codigo ?? "",
+      admCodigo: c.adm_vcodigo ?? c.admCodigo ?? "",
+      nombre: c.per_vnombre_completo ?? c.nombre ?? "—",
+      direccion: c.dir_vdireccion_completa ?? c.direccion ?? "",
+      tipoPersona: c.tipadm_vabreviacion ?? c.tipper_vabreviacion ?? c.tipoPersona ?? "",
+    }));
   }, [location.state]);
 
   useEffect(() => {
@@ -362,7 +432,6 @@ export default function EstadoCuenta() {
   const [contribIndex, setContribIndex] = useState(0);
   const activeContrib = contribuyentes[contribIndex] || contribuyentes[0];
 
-  // Scroll X persistente por tabla
   const scrollStoreRef = useRef({
     predial: 0,
     vehicular: 0,
@@ -370,10 +439,8 @@ export default function EstadoCuenta() {
     transito: 0,
   });
 
-  // Servicio seleccionado
   const [activeService, setActiveService] = useState("predial");
 
-  // Selección por servicio
   const [selectedByService, setSelectedByService] = useState(() => ({
     predial: new Set(),
     vehicular: new Set(),
@@ -381,207 +448,155 @@ export default function EstadoCuenta() {
     transito: new Set(),
   }));
 
-  // Confirmación salir
   const [confirmSalir, setConfirmSalir] = useState(false);
 
-  // =========================
-  // MOCKS por contribuyente
-  // =========================
+  // ===== DATA REAL =====
+  const [predialRows, setPredialRows] = useState([]);
+  const [vehicularRows, setVehicularRows] = useState([]);
+  const [arbitriosAllRows, setArbitriosAllRows] = useState([]);
+  const [transitoRows, setTransitoRows] = useState([]);
 
-  const predialRows = useMemo(() => {
-    const base = [
-      {
-        id: "pr-1",
-        estado: "A",
-        anio: 2022,
-        periodo: "01",
-        insoluto: 1800,
-        derEmision: 50,
-        reajuste: 0,
-        interes: 120,
-        beneficio: 0,
-        total: 1970,
-      },
-      {
-        id: "pr-2",
-        estado: "A",
-        anio: 2023,
-        periodo: "02",
-        insoluto: 2100,
-        derEmision: 50,
-        reajuste: 30,
-        interes: 140,
-        beneficio: 0,
-        total: 2320,
-      },
-      {
-        id: "pr-3",
-        estado: "A",
-        anio: 2024,
-        periodo: "01",
-        insoluto: 2500,
-        derEmision: 50,
-        reajuste: 0,
-        interes: 160,
-        beneficio: 0,
-        total: 2710,
-      },
-    ];
-    const factor = contribIndex === 1 ? 1.1 : 1;
-    return base
-      .map((r) => ({
-        ...r,
-        insoluto: Math.round(r.insoluto * factor),
-        total: Math.round(r.total * factor),
-      }))
-      .sort((a, b) => a.anio - b.anio);
-  }, [contribIndex]);
-
-  const vehicularRows = useMemo(() => {
-    const base = [
-      {
-        id: "vh-1",
-        estado: "A",
-        placa: "V1A-123",
-        periodo: "2023",
-        insoluto: 4200,
-        derEm: 50,
-        reajuste: 0,
-        interes: 200,
-        beneficio: 0,
-        total: 4450,
-      },
-      {
-        id: "vh-2",
-        estado: "A",
-        placa: "V1A-123",
-        periodo: "2024",
-        insoluto: 4300,
-        derEm: 50,
-        reajuste: 20,
-        interes: 230,
-        beneficio: 0,
-        total: 4600,
-      },
-    ];
-    const factor = contribIndex === 1 ? 0.9 : 1;
-    return base
-      .map((r) => ({ ...r, total: Math.round(r.total * factor) }))
-      .sort((a, b) => String(a.periodo).localeCompare(String(b.periodo)));
-  }, [contribIndex]);
-
-  const arbitriosAllRows = useMemo(() => {
-    const base = [
-      {
-        id: "ar-1",
-        predio: "Predio 01 - Calle A 123",
-        estado: "A",
-        codigoUso: "RES",
-        anio: 2023,
-        periodo: "01",
-        insoluto: 500,
-        interes: 20,
-        beneficio: 0,
-        total: 520,
-      },
-      {
-        id: "ar-2",
-        predio: "Predio 01 - Calle A 123",
-        estado: "A",
-        codigoUso: "RES",
-        anio: 2024,
-        periodo: "02",
-        insoluto: 520,
-        interes: 25,
-        beneficio: 0,
-        total: 545,
-      },
-      {
-        id: "ar-3",
-        predio: "Predio 02 - Av B 456",
-        estado: "A",
-        codigoUso: "COM",
-        anio: 2023,
-        periodo: "01",
-        insoluto: 850,
-        interes: 30,
-        beneficio: 0,
-        total: 880,
-      },
-      {
-        id: "ar-4",
-        predio: "Predio 02 - Av B 456",
-        estado: "A",
-        codigoUso: "COM",
-        anio: 2024,
-        periodo: "01",
-        insoluto: 900,
-        interes: 35,
-        beneficio: 0,
-        total: 935,
-      },
-    ];
-    const factor = contribIndex === 1 ? 1.05 : 1;
-    return base
-      .map((r) => ({ ...r, total: Math.round(r.total * factor) }))
-      .sort((a, b) => a.anio - b.anio);
-  }, [contribIndex]);
-
-  const arbitriosPredios = useMemo(() => {
-    const set = new Set(arbitriosAllRows.map((r) => r.predio));
-    return Array.from(set);
-  }, [arbitriosAllRows]);
-
+  const [prediosOptions, setPrediosOptions] = useState([]); // [{uso_vcodigo, vdireccion_completa}]
   const [arbitriosPredioSel, setArbitriosPredioSel] = useState("");
 
+  // Fetch por contribuyente activo
   useEffect(() => {
-    setArbitriosPredioSel(arbitriosPredios[0] || "");
-  }, [arbitriosPredios]);
+    const admCodigo = String(activeContrib?.admCodigo || "").trim();
+    if (!admCodigo) return;
+
+    let alive = true;
+
+    async function loadAll() {
+      try {
+        const [predialRes, vehicularRes, prediosRes, arbitriosRes, transitoRes] = await Promise.allSettled([
+          traerDeudaImpuestos({ conApagId: 1, admCodigo }),
+          traerDeudaImpuestos({ conApagId: 2, admCodigo }),
+          traerPredios(admCodigo),
+          traerDeudaArbitrios(admCodigo),
+          traerDeudaInfracciones({ infractorDni: nroDoc }),
+        ]);
+
+        if (!alive) return;
+
+        // Predial
+        const predialDato = predialRes.status === "fulfilled" ? (predialRes.value?.dato ?? []) : [];
+        setPredialRows(
+          Array.isArray(predialDato)
+            ? predialDato
+                .map((r) => ({
+                  id: String(r.ctacte_iid ?? `${r.ctacte_ianio}-${r.ctacte_iperiodo}-${Math.random()}`),
+                  estado: r.ctacte_vestado ?? "",
+                  anio: Number(r.ctacte_ianio ?? 0),
+                  periodo: String(r.ctacte_iperiodo ?? ""),
+                  insoluto: Number(r.ninsoluto ?? 0),
+                  derEmision: Number(r.nderecho ?? 0),
+                  reajuste: Number(r.nreajuste ?? 0),
+                  interes: Number(r.ninteres ?? 0),
+                  beneficio: Number(r.nbeneficio ?? 0),
+                  total: Number(r.ntotal ?? 0),
+                }))
+                .sort((a, b) => (a.anio - b.anio) || String(a.periodo).localeCompare(String(b.periodo)))
+            : []
+        );
+
+        // Vehicular
+        const vehicularDato = vehicularRes.status === "fulfilled" ? (vehicularRes.value?.dato ?? []) : [];
+        setVehicularRows(
+          Array.isArray(vehicularDato)
+            ? vehicularDato
+                .map((r) => ({
+                  id: String(r.ctacte_iid ?? `${r.ctacte_ianio}-${r.ctacte_iperiodo}-${r.ctacte_vplaca}-${Math.random()}`),
+                  estado: r.ctacte_vestado ?? "",
+                  placa: r.ctacte_vplaca ?? "",
+                  periodo: r.periodo ?? String(r.ctacte_ianio ?? ""),
+                  insoluto: Number(r.ninsoluto ?? 0),
+                  derEm: Number(r.nderecho ?? 0),
+                  reajuste: Number(r.nreajuste ?? 0),
+                  interes: Number(r.ninteres ?? 0),
+                  beneficio: Number(r.nbeneficio ?? 0),
+                  total: Number(r.ntotal ?? 0),
+                }))
+                .sort((a, b) => String(a.periodo).localeCompare(String(b.periodo)))
+            : []
+        );
+
+        // Predios (combo)
+        const prediosDato = prediosRes.status === "fulfilled" ? (prediosRes.value?.dato ?? []) : [];
+        const prediosArr = Array.isArray(prediosDato) ? prediosDato : [];
+        setPrediosOptions(prediosArr);
+
+        // Selección inicial de predio
+        const firstUso = prediosArr[0]?.uso_vcodigo ?? "";
+        setArbitriosPredioSel((prev) => prev || firstUso);
+
+        // Arbitrios
+        const arbitriosDato = arbitriosRes.status === "fulfilled" ? (arbitriosRes.value?.dato ?? []) : [];
+        setArbitriosAllRows(
+          Array.isArray(arbitriosDato)
+            ? arbitriosDato
+                .map((r) => ({
+                  id: `${r.uso_vcodigo}-${r.ctacte_ianio}-${r.ctacte_iperiodo}-${r.ctacte_iid_tem ?? "0"}`,
+                  predio: String(r.uso_vcodigo ?? ""), // value real (uso_vcodigo)
+                  estado: r.ctacte_vestado ?? "",
+                  codigoUso: String(r.uso_vcodigo ?? ""),
+                  anio: Number(r.ctacte_ianio ?? 0),
+                  periodo: String(r.ctacte_iperiodo ?? ""),
+                  insoluto: Number(r.ninsoluto ?? 0),
+                  interes: Number(r.ninteres ?? 0),
+                  beneficio: Number(r.nbeneficio ?? 0),
+                  total: Number(r.ntotal ?? 0),
+                }))
+                .sort((a, b) => (a.anio - b.anio) || String(a.periodo).localeCompare(String(b.periodo)))
+            : []
+        );
+
+        // Tránsito (infracciones)
+        const transitoDato = transitoRes.status === "fulfilled" ? (transitoRes.value?.dato ?? []) : [];
+        setTransitoRows(
+          Array.isArray(transitoDato)
+            ? transitoDato
+                .map((r) => ({
+                  id: String(r.ctacte_id ?? `${r.nro_doc_cargo}-${Math.random()}`),
+                  nroInf: r.nro_doc_cargo ?? "",
+                  placa: r.placa_ ?? "",
+                  tipoInf: r.tipo_inf ?? "",
+                  fecInf: isoToDMY(r.fecha_cargo),
+                  fecVenc: isoToDMY(r.fecha_ven_cargo),
+                  infractor: r.nomcompleto_inf ?? "",
+                  total: Number(r.total_ ?? 0),
+                  dscto: Number(r.dsct_ ?? 0),
+                  pacuenta: Number(r.pago_acuenta ?? 0),
+                  deuda: Number(r.saldo_ ?? 0),
+                }))
+                .sort((a, b) => parseDateDMY(a.fecInf) - parseDateDMY(b.fecInf))
+            : []
+        );
+      } catch {
+        if (!alive) return;
+        setPredialRows([]);
+        setVehicularRows([]);
+        setArbitriosAllRows([]);
+        setTransitoRows([]);
+        setPrediosOptions([]);
+        setArbitriosPredioSel("");
+      }
+    }
+
+    loadAll();
+
+    return () => {
+      alive = false;
+    };
+  }, [activeContrib?.admCodigo, nroDoc]);
 
   const arbitriosRows = useMemo(() => {
-    const filtered = arbitriosAllRows.filter((r) =>
-      arbitriosPredioSel ? r.predio === arbitriosPredioSel : true
-    );
+    const uso = String(arbitriosPredioSel || "");
+    const filtered = arbitriosAllRows.filter((r) => (uso ? r.predio === uso : true));
     return [...filtered].sort((a, b) => a.anio - b.anio);
   }, [arbitriosAllRows, arbitriosPredioSel]);
 
-  const transitoRows = useMemo(
-    () =>
-      [
-        {
-          id: "tr-1",
-          nroInf: "PAP-001",
-          placa: "V1A-123",
-          tipoInf: "G-40",
-          fecInf: "10/01/2024",
-          fecVenc: "10/02/2024",
-          infractor: "PAULO CIUDAD",
-          total: 3200,
-          dscto: 0,
-          pacuenta: 500,
-          deuda: 2700,
-        },
-        {
-          id: "tr-2",
-          nroInf: "PAP-044",
-          placa: "C3B-777",
-          tipoInf: "M-02",
-          fecInf: "02/03/2025",
-          fecVenc: "02/04/2025",
-          infractor: "PAULO CIUDAD",
-          total: 5977.2,
-          dscto: 200,
-          pacuenta: 0,
-          deuda: 5777.2,
-        },
-      ].sort((a, b) => parseDateDMY(a.fecInf) - parseDateDMY(b.fecInf)),
-    []
-  );
-
-  // Totales
   const totals = useMemo(() => {
-    const sum = (arr, key) =>
-      arr.reduce((acc, r) => acc + Number(r[key] || 0), 0);
+    const sum = (arr, key) => arr.reduce((acc, r) => acc + Number(r[key] || 0), 0);
 
     return {
       predial: sum(predialRows, "total"),
@@ -600,7 +615,6 @@ export default function EstadoCuenta() {
     );
   }, [totals]);
 
-  // Gate SOLO Predial y Arbitrios
   const canSelectPredial = useMemo(
     () => buildOldestYearGate(predialRows, (r) => r.anio, selectedByService.predial),
     [predialRows, selectedByService.predial]
@@ -611,7 +625,6 @@ export default function EstadoCuenta() {
     [arbitriosRows, selectedByService.arbitrios]
   );
 
-  // Acciones selección
   function toggleRow(serviceKey, rowId) {
     setSelectedByService((prev) => {
       const next = { ...prev };
@@ -650,15 +663,8 @@ export default function EstadoCuenta() {
     }
 
     return sum;
-  }, [
-    selectedByService,
-    predialRows,
-    vehicularRows,
-    arbitriosAllRows,
-    transitoRows,
-  ]);
+  }, [selectedByService, predialRows, vehicularRows, arbitriosAllRows, transitoRows]);
 
-  // Al cambiar contribuyente: limpiar selección y reset scroll
   useEffect(() => {
     setSelectedByService({
       predial: new Set(),
@@ -670,9 +676,7 @@ export default function EstadoCuenta() {
     setActiveService("predial");
   }, [contribIndex]);
 
-  // =========================
-  // TABLAS
-  // =========================
+  // ===== TABLAS =====
 
   function PredialTable() {
     return (
@@ -681,11 +685,7 @@ export default function EstadoCuenta() {
         subtitle="Solo puede seleccionar el año más antiguo pendiente. Deslice hacia la derecha para ver todas las columnas."
         rightStat={{ label: "Subtotal", value: formatPEN(totals.predial) }}
       >
-        <ScrollXTable
-          storageKey="predial"
-          scrollStoreRef={scrollStoreRef}
-          minWidthClass="min-w-[1600px]"
-        >
+        <ScrollXTable storageKey="predial" scrollStoreRef={scrollStoreRef} minWidthClass="min-w-[1600px]">
           <div className="grid grid-cols-10 gap-6 pb-3 border-b border-slate-200">
             <HeadCell align="center">ESTADO</HeadCell>
             <HeadCell align="center">AÑO</HeadCell>
@@ -706,42 +706,17 @@ export default function EstadoCuenta() {
               const disabled = !allowed && !checked;
 
               return (
-                <div
-                  key={r.id}
-                  className="grid grid-cols-10 gap-6 items-center py-4 border-b border-slate-200"
-                >
-                  <BodyCell align="center" strong muted={disabled}>
-                    {r.estado}
-                  </BodyCell>
-                  <BodyCell align="center" muted={disabled}>
-                    {r.anio}
-                  </BodyCell>
-                  <BodyCell align="center" muted={disabled}>
-                    {r.periodo}
-                  </BodyCell>
-                  <BodyCell align="right" muted={disabled}>
-                    {formatPEN(r.insoluto)}
-                  </BodyCell>
-                  <BodyCell align="right" muted={disabled}>
-                    {formatPEN(r.derEmision)}
-                  </BodyCell>
-                  <BodyCell align="right" muted={disabled}>
-                    {formatPEN(r.reajuste)}
-                  </BodyCell>
-                  <BodyCell align="right" muted={disabled}>
-                    {formatPEN(r.interes)}
-                  </BodyCell>
-                  <BodyCell align="right" muted={disabled}>
-                    {formatPEN(r.beneficio)}
-                  </BodyCell>
-                  <BodyCell align="right" strong muted={disabled}>
-                    {formatPEN(r.total)}
-                  </BodyCell>
-                  <CheckboxCell
-                    checked={checked}
-                    disabled={disabled}
-                    onToggle={() => toggleRow("predial", r.id)}
-                  />
+                <div key={r.id} className="grid grid-cols-10 gap-6 items-center py-4 border-b border-slate-200">
+                  <BodyCell align="center" strong muted={disabled}>{r.estado}</BodyCell>
+                  <BodyCell align="center" muted={disabled}>{r.anio}</BodyCell>
+                  <BodyCell align="center" muted={disabled}>{r.periodo}</BodyCell>
+                  <BodyCell align="right" muted={disabled}>{formatPEN(r.insoluto)}</BodyCell>
+                  <BodyCell align="right" muted={disabled}>{formatPEN(r.derEmision)}</BodyCell>
+                  <BodyCell align="right" muted={disabled}>{formatPEN(r.reajuste)}</BodyCell>
+                  <BodyCell align="right" muted={disabled}>{formatPEN(r.interes)}</BodyCell>
+                  <BodyCell align="right" muted={disabled}>{formatPEN(r.beneficio)}</BodyCell>
+                  <BodyCell align="right" strong muted={disabled}>{formatPEN(r.total)}</BodyCell>
+                  <CheckboxCell checked={checked} disabled={disabled} onToggle={() => toggleRow("predial", r.id)} />
                 </div>
               );
             })}
@@ -758,11 +733,7 @@ export default function EstadoCuenta() {
         subtitle="Puede seleccionar cualquier periodo. Deslice hacia la derecha para ver todas las columnas."
         rightStat={{ label: "Subtotal", value: formatPEN(totals.vehicular) }}
       >
-        <ScrollXTable
-          storageKey="vehicular"
-          scrollStoreRef={scrollStoreRef}
-          minWidthClass="min-w-[1600px]"
-        >
+        <ScrollXTable storageKey="vehicular" scrollStoreRef={scrollStoreRef} minWidthClass="min-w-[1600px]">
           <div className="grid grid-cols-10 gap-6 pb-3 border-b border-slate-200">
             <HeadCell align="center">ESTADO</HeadCell>
             <HeadCell align="center">PLACA</HeadCell>
@@ -779,45 +750,19 @@ export default function EstadoCuenta() {
           <div className="mt-2">
             {vehicularRows.map((r) => {
               const checked = selectedByService.vehicular.has(r.id);
-              const disabled = false;
 
               return (
-                <div
-                  key={r.id}
-                  className="grid grid-cols-10 gap-6 items-center py-4 border-b border-slate-200"
-                >
-                  <BodyCell align="center" strong muted={disabled}>
-                    {r.estado}
-                  </BodyCell>
-                  <BodyCell align="center" strong muted={disabled}>
-                    {r.placa}
-                  </BodyCell>
-                  <BodyCell align="center" muted={disabled}>
-                    {r.periodo}
-                  </BodyCell>
-                  <BodyCell align="right" muted={disabled}>
-                    {formatPEN(r.insoluto)}
-                  </BodyCell>
-                  <BodyCell align="right" muted={disabled}>
-                    {formatPEN(r.derEm)}
-                  </BodyCell>
-                  <BodyCell align="right" muted={disabled}>
-                    {formatPEN(r.reajuste)}
-                  </BodyCell>
-                  <BodyCell align="right" muted={disabled}>
-                    {formatPEN(r.interes)}
-                  </BodyCell>
-                  <BodyCell align="right" muted={disabled}>
-                    {formatPEN(r.beneficio)}
-                  </BodyCell>
-                  <BodyCell align="right" strong muted={disabled}>
-                    {formatPEN(r.total)}
-                  </BodyCell>
-                  <CheckboxCell
-                    checked={checked}
-                    disabled={disabled}
-                    onToggle={() => toggleRow("vehicular", r.id)}
-                  />
+                <div key={r.id} className="grid grid-cols-10 gap-6 items-center py-4 border-b border-slate-200">
+                  <BodyCell align="center" strong>{r.estado}</BodyCell>
+                  <BodyCell align="center" strong>{r.placa}</BodyCell>
+                  <BodyCell align="center">{r.periodo}</BodyCell>
+                  <BodyCell align="right">{formatPEN(r.insoluto)}</BodyCell>
+                  <BodyCell align="right">{formatPEN(r.derEm)}</BodyCell>
+                  <BodyCell align="right">{formatPEN(r.reajuste)}</BodyCell>
+                  <BodyCell align="right">{formatPEN(r.interes)}</BodyCell>
+                  <BodyCell align="right">{formatPEN(r.beneficio)}</BodyCell>
+                  <BodyCell align="right" strong>{formatPEN(r.total)}</BodyCell>
+                  <CheckboxCell checked={checked} onToggle={() => toggleRow("vehicular", r.id)} />
                 </div>
               );
             })}
@@ -835,9 +780,7 @@ export default function EstadoCuenta() {
         rightStat={{ label: "Subtotal (todos)", value: formatPEN(totals.arbitrios) }}
       >
         <div className="mb-8">
-          <label className="block text-2xl font-extrabold text-slate-800 mb-3">
-            Filtrar por predio
-          </label>
+          <label className="block text-2xl font-extrabold text-slate-800 mb-3">Filtrar por predio</label>
           <select
             value={arbitriosPredioSel}
             onChange={(e) => setArbitriosPredioSel(e.target.value)}
@@ -850,19 +793,15 @@ export default function EstadoCuenta() {
               rounded-none
             "
           >
-            {arbitriosPredios.map((p) => (
-              <option key={p} value={p}>
-                {p}
+            {prediosOptions.map((p) => (
+              <option key={p.uso_vcodigo} value={p.uso_vcodigo}>
+                {p.vdireccion_completa}
               </option>
             ))}
           </select>
         </div>
 
-        <ScrollXTable
-          storageKey="arbitrios"
-          scrollStoreRef={scrollStoreRef}
-          minWidthClass="min-w-[1500px]"
-        >
+        <ScrollXTable storageKey="arbitrios" scrollStoreRef={scrollStoreRef} minWidthClass="min-w-[1500px]">
           <div className="grid grid-cols-9 gap-6 pb-3 border-b border-slate-200">
             <HeadCell align="center">ESTADO</HeadCell>
             <HeadCell align="center">COD. USO</HeadCell>
@@ -882,39 +821,16 @@ export default function EstadoCuenta() {
               const disabled = !allowed && !checked;
 
               return (
-                <div
-                  key={r.id}
-                  className="grid grid-cols-9 gap-6 items-center py-4 border-b border-slate-200"
-                >
-                  <BodyCell align="center" strong muted={disabled}>
-                    {r.estado}
-                  </BodyCell>
-                  <BodyCell align="center" strong muted={disabled}>
-                    {r.codigoUso}
-                  </BodyCell>
-                  <BodyCell align="center" muted={disabled}>
-                    {r.anio}
-                  </BodyCell>
-                  <BodyCell align="center" muted={disabled}>
-                    {r.periodo}
-                  </BodyCell>
-                  <BodyCell align="right" muted={disabled}>
-                    {formatPEN(r.insoluto)}
-                  </BodyCell>
-                  <BodyCell align="right" muted={disabled}>
-                    {formatPEN(r.interes)}
-                  </BodyCell>
-                  <BodyCell align="right" muted={disabled}>
-                    {formatPEN(r.beneficio)}
-                  </BodyCell>
-                  <BodyCell align="right" strong muted={disabled}>
-                    {formatPEN(r.total)}
-                  </BodyCell>
-                  <CheckboxCell
-                    checked={checked}
-                    disabled={disabled}
-                    onToggle={() => toggleRow("arbitrios", r.id)}
-                  />
+                <div key={r.id} className="grid grid-cols-9 gap-6 items-center py-4 border-b border-slate-200">
+                  <BodyCell align="center" strong muted={disabled}>{r.estado}</BodyCell>
+                  <BodyCell align="center" strong muted={disabled}>{r.codigoUso}</BodyCell>
+                  <BodyCell align="center" muted={disabled}>{r.anio}</BodyCell>
+                  <BodyCell align="center" muted={disabled}>{r.periodo}</BodyCell>
+                  <BodyCell align="right" muted={disabled}>{formatPEN(r.insoluto)}</BodyCell>
+                  <BodyCell align="right" muted={disabled}>{formatPEN(r.interes)}</BodyCell>
+                  <BodyCell align="right" muted={disabled}>{formatPEN(r.beneficio)}</BodyCell>
+                  <BodyCell align="right" strong muted={disabled}>{formatPEN(r.total)}</BodyCell>
+                  <CheckboxCell checked={checked} disabled={disabled} onToggle={() => toggleRow("arbitrios", r.id)} />
                 </div>
               );
             })}
@@ -931,11 +847,7 @@ export default function EstadoCuenta() {
         subtitle="Puede seleccionar cualquier infracción. Deslice hacia la derecha para ver todas las columnas."
         rightStat={{ label: "Deuda total", value: formatPEN(totals.transito) }}
       >
-        <ScrollXTable
-          storageKey="transito"
-          scrollStoreRef={scrollStoreRef}
-          minWidthClass="min-w-[1900px]"
-        >
+        <ScrollXTable storageKey="transito" scrollStoreRef={scrollStoreRef} minWidthClass="min-w-[1900px]">
           <div className="grid grid-cols-11 gap-6 pb-3 border-b border-slate-200">
             <HeadCell align="center">NRO. INF.</HeadCell>
             <HeadCell align="center">PLACA</HeadCell>
@@ -953,46 +865,20 @@ export default function EstadoCuenta() {
           <div className="mt-2">
             {transitoRows.map((r) => {
               const checked = selectedByService.transito.has(r.id);
-              const disabled = false;
 
               return (
-                <div
-                  key={r.id}
-                  className="grid grid-cols-11 gap-6 items-center py-4 border-b border-slate-200"
-                >
-                  <BodyCell align="center" strong muted={disabled}>
-                    {r.nroInf}
-                  </BodyCell>
-                  <BodyCell align="center" strong muted={disabled}>
-                    {r.placa}
-                  </BodyCell>
-                  <BodyCell align="center" muted={disabled}>
-                    {r.tipoInf}
-                  </BodyCell>
-                  <BodyCell align="center" muted={disabled}>
-                    {r.fecInf}
-                  </BodyCell>
-                  <BodyCell align="center" muted={disabled}>
-                    {r.fecVenc}
-                  </BodyCell>
-                  <BodyCell muted={disabled}>{r.infractor}</BodyCell>
-                  <BodyCell align="right" muted={disabled}>
-                    {formatPEN(r.total)}
-                  </BodyCell>
-                  <BodyCell align="right" muted={disabled}>
-                    {formatPEN(r.dscto)}
-                  </BodyCell>
-                  <BodyCell align="right" muted={disabled}>
-                    {formatPEN(r.pacuenta)}
-                  </BodyCell>
-                  <BodyCell align="right" strong muted={disabled}>
-                    {formatPEN(r.deuda)}
-                  </BodyCell>
-                  <CheckboxCell
-                    checked={checked}
-                    disabled={disabled}
-                    onToggle={() => toggleRow("transito", r.id)}
-                  />
+                <div key={r.id} className="grid grid-cols-11 gap-6 items-center py-4 border-b border-slate-200">
+                  <BodyCell align="center" strong>{r.nroInf}</BodyCell>
+                  <BodyCell align="center" strong>{r.placa}</BodyCell>
+                  <BodyCell align="center">{r.tipoInf}</BodyCell>
+                  <BodyCell align="center">{r.fecInf}</BodyCell>
+                  <BodyCell align="center">{r.fecVenc}</BodyCell>
+                  <BodyCell>{r.infractor}</BodyCell>
+                  <BodyCell align="right">{formatPEN(r.total)}</BodyCell>
+                  <BodyCell align="right">{formatPEN(r.dscto)}</BodyCell>
+                  <BodyCell align="right">{formatPEN(r.pacuenta)}</BodyCell>
+                  <BodyCell align="right" strong>{formatPEN(r.deuda)}</BodyCell>
+                  <CheckboxCell checked={checked} onToggle={() => toggleRow("transito", r.id)} />
                 </div>
               );
             })}
@@ -1016,31 +902,18 @@ export default function EstadoCuenta() {
         return <PredialTable />;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    activeService,
-    selectedByService,
-    arbitriosPredioSel,
-    arbitriosRows,
-    canSelectPredial,
-    canSelectArbitrios,
-    totals,
-  ]);
+  }, [activeService, selectedByService, arbitriosPredioSel, arbitriosRows, canSelectPredial, canSelectArbitrios, totals]);
 
   return (
-    <motion.div
-      className="w-screen h-screen bg-slate-200"
-      variants={container}
-      initial="hidden"
-      animate="show"
-    >
+    <motion.div className="w-screen h-screen bg-slate-200" variants={container} initial="hidden" animate="show">
       <div className="w-full h-full flex flex-col bg-white overflow-hidden">
         {/* HEADER */}
         <motion.header
           variants={itemUp}
           className="
             relative
-            bg-linear-to-b from-sky-600 to-blue-700
-            text-white
+            bg-linear-to-b from-white-100 to-slate-200
+            text-[#0F70B3]
             px-10 py-12
             flex flex-col items-center
             gap-6
@@ -1053,8 +926,8 @@ export default function EstadoCuenta() {
             className="
               absolute left-8 top-8
               w-16 h-16
-              bg-white/15 border border-white/25
-              text-white text-4xl
+              bg-black/15 border border-black/35
+              text-black text-4xl
               flex items-center justify-center
               active:scale-[0.95]
             "
@@ -1064,45 +937,24 @@ export default function EstadoCuenta() {
             <BiArrowBack />
           </motion.button>
 
-          <img
-            src={logo}
-            alt="Logo"
-            className="h-24 md:h-28 object-contain bg-white/90 p-3"
-          />
+          <img src={logo} alt="Logo" className="h-24 md:h-28 object-contain p-3" />
 
           <div className="text-center">
-            <h1 className="text-5xl md:text-6xl font-extrabold">
-              Estado de Cuenta
-            </h1>
-            <p className="text-white/85 text-xl md:text-2xl mt-2">
-              Documento:{" "}
-              <span className="font-extrabold">
-                {tipoDocLabel} {nroDoc}
-              </span>
+            <h1 className="text-5xl md:text-6xl font-extrabold">Estado de Cuenta</h1>
+            <p className="text-[#0F70B3] text-xl md:text-2xl mt-2">
+              Documento: <span className="font-extrabold">{tipoDocLabel} {nroDoc}</span>
             </p>
           </div>
         </motion.header>
 
         {/* BODY */}
-        <motion.main
-          variants={container}
-          className="flex-1 bg-slate-100 px-10 py-10 overflow-auto"
-        >
+        <motion.main variants={container} className="flex-1 bg-slate-100 px-10 py-10 overflow-auto">
           <div className="max-w-6xl mx-auto">
-            {/* ✅ Tabs si hay 2+ contribuyentes */}
             {contribuyentes.length >= 2 && (
-              <ContribuyenteTabs
-                items={contribuyentes}
-                activeIndex={contribIndex}
-                onChange={setContribIndex}
-              />
+              <ContribuyenteTabsBrowser items={contribuyentes} activeIndex={contribIndex} onChange={setContribIndex} />
             )}
 
-            {/* Contribuyente activo */}
-            <motion.div
-              variants={itemUp}
-              className="bg-white shadow-2xl rounded-none p-10 border border-slate-200 mb-10"
-            >
+            <motion.div variants={itemUp} className="bg-white shadow-2xl rounded-none p-10 border border-slate-200 mb-10">
               <div className="text-slate-500 text-xl">Contribuyente activo</div>
               <div className="text-slate-900 text-4xl font-extrabold mt-2 wrap-break-word">
                 {activeContrib?.nombre || "—"}
@@ -1110,24 +962,20 @@ export default function EstadoCuenta() {
 
               <div className="mt-6 grid grid-cols-2 gap-8">
                 <div className="text-slate-700 text-2xl">
-                  <span className="font-extrabold">Código:</span>{" "}
-                  {activeContrib?.codigo || "—"}
+                  <span className="font-extrabold">Código:</span> {activeContrib?.codigo || "—"}
                 </div>
                 <div className="text-slate-700 text-2xl text-right">
-                  <span className="font-extrabold">Documento:</span>{" "}
-                  {tipoDocLabel} {nroDoc}
+                  <span className="font-extrabold">Documento:</span> {tipoDocLabel} {nroDoc}
                 </div>
               </div>
 
               {activeContrib?.direccion && (
                 <div className="mt-6 text-slate-700 text-2xl">
-                  <span className="font-extrabold">Dirección:</span>{" "}
-                  {activeContrib.direccion}
+                  <span className="font-extrabold">Dirección:</span> {activeContrib.direccion}
                 </div>
               )}
             </motion.div>
 
-            {/* Total + carrito */}
             <motion.div
               variants={itemUp}
               className="
@@ -1137,16 +985,12 @@ export default function EstadoCuenta() {
             >
               <div>
                 <div className="text-slate-500 text-xl">Total pendiente</div>
-                <div className="text-slate-900 text-6xl font-extrabold mt-2">
-                  {formatPEN(totalGeneral)}
-                </div>
+                <div className="text-slate-900 text-6xl font-extrabold mt-2">{formatPEN(totalGeneral)}</div>
 
                 {selectedCount > 0 && (
                   <div className="mt-4 text-slate-700 text-2xl font-extrabold">
                     Seleccionado: {selectedCount} item(s) —{" "}
-                    <span className="text-slate-900">
-                      {formatPEN(subtotalSeleccionado)}
-                    </span>
+                    <span className="text-slate-900">{formatPEN(subtotalSeleccionado)}</span>
                   </div>
                 )}
               </div>
@@ -1168,15 +1012,12 @@ export default function EstadoCuenta() {
                   <BiCartAlt className="text-4xl" />
                   Ir al carrito
                   {selectedCount > 0 && (
-                    <span className="ml-3 bg-white/20 px-4 py-2 text-xl">
-                      {selectedCount}
-                    </span>
+                    <span className="ml-3 bg-white/20 px-4 py-2 text-xl">{selectedCount}</span>
                   )}
                 </button>
               </div>
             </motion.div>
 
-            {/* Cards 2x2 */}
             <div className="grid grid-cols-2 gap-10">
               <SummaryCard
                 title="Impuesto Predial"
@@ -1186,7 +1027,6 @@ export default function EstadoCuenta() {
                 active={activeService === "predial"}
                 onClick={() => setActiveService("predial")}
               />
-
               <SummaryCard
                 title="Impuesto Vehicular"
                 icon={<BiCar />}
@@ -1195,7 +1035,6 @@ export default function EstadoCuenta() {
                 active={activeService === "vehicular"}
                 onClick={() => setActiveService("vehicular")}
               />
-
               <SummaryCard
                 title="Arbitrios Municipales"
                 icon={<BiBuildingHouse />}
@@ -1204,7 +1043,6 @@ export default function EstadoCuenta() {
                 active={activeService === "arbitrios"}
                 onClick={() => setActiveService("arbitrios")}
               />
-
               <SummaryCard
                 title="Infracciones de Tránsito"
                 icon={<BiTrafficCone />}
@@ -1215,7 +1053,6 @@ export default function EstadoCuenta() {
               />
             </div>
 
-            {/* DETALLE */}
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeService}
@@ -1228,7 +1065,6 @@ export default function EstadoCuenta() {
               </motion.div>
             </AnimatePresence>
 
-            {/* Salir grande */}
             <div className="mt-12">
               <button
                 type="button"
@@ -1249,10 +1085,7 @@ export default function EstadoCuenta() {
           </div>
         </motion.main>
 
-        <motion.footer
-          variants={itemUp}
-          className="py-6 text-center text-slate-400 text-base bg-white border-t"
-        >
+        <motion.footer variants={itemUp} className="py-6 text-center text-slate-400 text-base bg-white border-t">
           Municipalidad Provincial de Arequipa
         </motion.footer>
       </div>
@@ -1281,12 +1114,8 @@ export default function EstadoCuenta() {
             >
               <div className="flex items-start justify-between gap-6">
                 <div>
-                  <div className="text-slate-900 text-4xl font-extrabold">
-                    ¿Desea salir?
-                  </div>
-                  <div className="mt-3 text-slate-600 text-2xl">
-                    Volverá al inicio del kiosko.
-                  </div>
+                  <div className="text-slate-900 text-4xl font-extrabold">¿Desea salir?</div>
+                  <div className="mt-3 text-slate-600 text-2xl">Volverá al inicio del kiosko.</div>
                 </div>
 
                 <button

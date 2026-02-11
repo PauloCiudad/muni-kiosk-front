@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { BiArrowBack, BiLogInCircle } from "react-icons/bi";
 import logo from "../assets/logos_juntos.png";
 import { login } from "../services/authService";
+import { buscarContribuyentes } from "../services/impuestosService";
 
 const container = {
   hidden: { opacity: 0 },
@@ -49,37 +50,93 @@ export default function Login() {
     return DOC_TYPES.find((d) => d.value === tipoDoc)?.label ?? "";
   }, [tipoDoc]);
 
-  // ...tu mismo código arriba
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
 
-async function handleSubmit(e) {
-  e.preventDefault();
-  setError("");
+    const nroDocFinal = isSD ? "0" : nroDoc.trim();
 
-  const nroDocFinal = isSD ? "0" : nroDoc.trim();
+    // validaciones (las tuyas)
+    if (!tipoDoc) {
+      setLoading(false);
+      return setError("Seleccione el tipo de documento.");
+    }
+    if (tipoDoc !== "1") {
+      setLoading(false);
+      return setError("Por el momento el login solo está habilitado con DNI.");
+    }
+    if (!nroDocFinal) {
+      setLoading(false);
+      return setError("Ingrese el número de documento.");
+    }
+    if (nroDocFinal.length !== 8) {
+      setLoading(false);
+      return setError("El DNI debe tener 8 dígitos.");
+    }
+    if (!correo.trim()) {
+      setLoading(false);
+      return setError("Ingrese el correo electrónico.");
+    }
+    if (!celular.trim()) {
+      setLoading(false);
+      return setError("Ingrese el número de celular.");
+    }
+    if (!correo.includes("@")) {
+      setLoading(false);
+      return setError("Correo inválido.");
+    }
+    if (celular.trim().length !== 9) {
+      setLoading(false);
+      return setError("El celular debe tener 9 dígitos.");
+    }
 
-  if (!tipoDoc) return setError("Seleccione el tipo de documento.");
-  if (tipoDoc !== "1") return setError("Por el momento el login solo está habilitado con DNI.");
-  if (!nroDocFinal) return setError("Ingrese el número de documento.");
-  if (nroDocFinal.length !== 8) return setError("El DNI debe tener 8 dígitos.");
-  if (!correo.trim()) return setError("Ingrese el correo electrónico.");
-  if (!celular.trim()) return setError("Ingrese el número de celular.");
-  if (!correo.includes("@")) return setError("Correo inválido.");
-  if (celular.trim().length !== 9) return setError("El celular debe tener 9 dígitos.");
+    const body = {
+      nroDni: nroDocFinal,
+      correoElectronico: correo.trim(),
+      nroCelular: celular.trim(),
+    };
 
-  // ✅ SIN BACKEND: solo navegamos y mandamos el documento
-  navigate("/estadocuenta", {
-    state: {
-      nroDoc: nroDocFinal,
-      tipoDocLabel,
-      contribuyentes: [
-      { codigo: "227309", nombre: "Michell & CIA", direccion: "Av. ...", tipoPersona: "JURIDICA" },
-      { codigo: "991122", nombre: "Juan Perez", direccion: "Calle ...", tipoPersona: "NATURAL" }
-      ]
-    },
-  });
-}
+    try {
+      // tu backend responde: { status, mensaje, dato: { token, refreshToken, persona } }
+      const resp = await login(body);
 
+      const token = resp?.dato?.token ?? resp?.token;
+      const refreshToken = resp?.dato?.refreshToken ?? resp?.refreshToken;
+      const persona = resp?.dato?.persona ?? resp?.persona;
 
+      if (!token) throw new Error("No se recibió token del servidor.");
+
+      localStorage.setItem("auth_token", token);
+      if (refreshToken) localStorage.setItem("refresh_token", refreshToken);
+      if (persona) localStorage.setItem("persona", JSON.stringify(persona));
+
+      // Documento real para consultas (si el backend devuelve persona.nroDni lo usamos)
+      const docParaConsulta = String(persona?.nroDni || nroDocFinal).trim();
+      if (!docParaConsulta) throw new Error("No se obtuvo el documento para la consulta.");
+
+      // traer contribuyentes
+      const contribRes = await buscarContribuyentes(docParaConsulta);
+      const contribuyentes = contribRes?.dato ?? contribRes?.data?.dato ?? [];
+
+      if (!Array.isArray(contribuyentes) || contribuyentes.length === 0) {
+        throw new Error("No se encontraron contribuyentes para este documento.");
+      }
+
+      // manda a EstadoCuenta (llaves que EstadoCuenta YA espera)
+      navigate("/EstadoCuenta", {
+        state: {
+          nroDoc: docParaConsulta,
+          tipoDocLabel,
+          contribuyentes, // raw (EstadoCuenta lo normaliza)
+        },
+      });
+    } catch (err) {
+      setError(err?.message || "No se pudo iniciar sesión.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <motion.div
@@ -126,9 +183,7 @@ async function handleSubmit(e) {
           />
 
           <div className="text-center">
-            <h1 className="text-5xl md:text-6xl font-extrabold">
-              Pagos en Línea
-            </h1>
+            <h1 className="text-5xl md:text-6xl font-extrabold">Pagos en Línea</h1>
             <p className="text-[#0F70B3] text-xl md:text-2xl mt-2">
               Ingrese sus datos para continuar
             </p>
@@ -163,7 +218,7 @@ async function handleSubmit(e) {
               </motion.div>
             )}
 
-            {/* FILA 1: Tipo doc + Nro doc (2 columnas) */}
+            {/* FILA 1 */}
             <div className="grid grid-cols-2 gap-8">
               <motion.div variants={itemUp} className="flex flex-col gap-3">
                 <label className="text-2xl font-extrabold text-slate-800">
@@ -209,14 +264,12 @@ async function handleSubmit(e) {
                   inputMode="numeric"
                 />
                 {isSD && (
-                  <div className="text-sm text-slate-500">
-                    * S/D: se enviará nro_doc = 0
-                  </div>
+                  <div className="text-sm text-slate-500">* S/D: se enviará nro_doc = 0</div>
                 )}
               </motion.div>
             </div>
 
-            {/* FILA 2: Correo */}
+            {/* FILA 2 */}
             <motion.div variants={itemUp} className="flex flex-col gap-3">
               <label className="text-2xl font-extrabold text-slate-800">
                 Correo Electrónico
@@ -239,7 +292,7 @@ async function handleSubmit(e) {
               />
             </motion.div>
 
-            {/* FILA 3: Celular */}
+            {/* FILA 3 */}
             <motion.div variants={itemUp} className="flex flex-col gap-3">
               <label className="text-2xl font-extrabold text-slate-800">
                 Número de Celular
@@ -259,9 +312,7 @@ async function handleSubmit(e) {
                 "
                 inputMode="numeric"
               />
-              <div className="text-sm text-slate-500">
-                * Solo números (9 dígitos)
-              </div>
+              <div className="text-sm text-slate-500">* Solo números (9 dígitos)</div>
             </motion.div>
 
             {/* SUBMIT */}
