@@ -1,4 +1,10 @@
-import { useMemo, useRef, useState, useLayoutEffect } from "react";
+import {
+  useMemo,
+  useRef,
+  useState,
+  useLayoutEffect,
+  useEffect,
+} from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -25,11 +31,6 @@ const itemUp = {
 
 const clickSound = new Audio("/click.mp3");
 
-function formatPEN(amount) {
-  const n = Number(amount || 0);
-  return n.toLocaleString("es-PE", { style: "currency", currency: "PEN" });
-}
-
 function safePlayClick() {
   try {
     clickSound.currentTime = 0;
@@ -37,17 +38,20 @@ function safePlayClick() {
   } catch {}
 }
 
+function formatPEN(amount) {
+  const n = Number(amount || 0);
+  return n.toLocaleString("es-PE", { style: "currency", currency: "PEN" });
+}
+
 function parseDateDMY(dmy) {
-  // "DD/MM/YYYY" -> Date
   if (!dmy) return new Date(0);
   const [dd, mm, yyyy] = String(dmy).split("/");
   return new Date(Number(yyyy), Number(mm) - 1, Number(dd));
 }
 
 /**
- * ✅ Reglas de habilitación por "año más antiguo":
- * - Encuentra el primer año (más antiguo) que NO está completamente seleccionado.
- * - Solo se habilita ese año; el resto queda disabled.
+ * ✅ Gate por "año más antiguo pendiente" (SOLO Predial y Arbitrios):
+ * habilita únicamente el año más antiguo que aún no está completamente seleccionado.
  */
 function buildOldestYearGate(rows, yearGetter, selectedSet) {
   const byYear = new Map();
@@ -59,7 +63,6 @@ function buildOldestYearGate(rows, yearGetter, selectedSet) {
 
   const years = Array.from(byYear.keys()).sort((a, b) => a - b);
 
-  // Encontrar el primer año incompleto
   let oldestIncompleteYear = null;
   for (const y of years) {
     const list = byYear.get(y) || [];
@@ -70,24 +73,119 @@ function buildOldestYearGate(rows, yearGetter, selectedSet) {
     }
   }
 
-  // Si todo está completo, habilitamos todo (igual ya está checked)
-  if (oldestIncompleteYear === null) {
-    return () => true;
-  }
+  // Si todo está completo, habilita todos
+  if (oldestIncompleteYear === null) return () => true;
 
-  // Solo habilitar filas del año más antiguo pendiente
   return (row) => yearGetter(row) === oldestIncompleteYear;
 }
 
 /**
- * ✅ Para tránsito (no hay año en tu estructura):
- * - Ordenado por fecha de infracción (ya lo tienes)
- * - Solo habilita la primera fila NO seleccionada (más antigua pendiente)
+ * ✅ Scroll X persistente por tabla (no se reinicia al marcar check)
  */
-function buildOldestRowGateOrdered(rowsOrdered, selectedSet) {
-  const firstNotCheckedIndex = rowsOrdered.findIndex((r) => !selectedSet.has(r.id));
-  if (firstNotCheckedIndex === -1) return () => true; // todo seleccionado
-  return (row) => row.id === rowsOrdered[firstNotCheckedIndex].id;
+function ScrollXTable({ storageKey, scrollStoreRef, minWidthClass, children }) {
+  const scrollerRef = useRef(null);
+
+  useLayoutEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const saved = scrollStoreRef.current?.[storageKey];
+    if (typeof saved === "number") el.scrollLeft = saved;
+  });
+
+  return (
+    <div
+      ref={scrollerRef}
+      className="w-full overflow-x-auto"
+      onScroll={(e) => {
+        scrollStoreRef.current[storageKey] = e.currentTarget.scrollLeft;
+      }}
+    >
+      <div className={minWidthClass}>{children}</div>
+    </div>
+  );
+}
+
+function HeadCell({ children, align = "left" }) {
+  return (
+    <div
+      className={`text-slate-500 text-lg font-extrabold ${
+        align === "right"
+          ? "text-right"
+          : align === "center"
+          ? "text-center"
+          : ""
+      }`}
+    >
+      {children}
+    </div>
+  );
+}
+
+function BodyCell({ children, align = "left", strong = false, muted = false }) {
+  return (
+    <div
+      className={`text-xl ${
+        muted
+          ? "text-slate-400"
+          : strong
+          ? "font-extrabold text-slate-900"
+          : "text-slate-700"
+      } ${
+        align === "right"
+          ? "text-right"
+          : align === "center"
+          ? "text-center"
+          : ""
+      }`}
+    >
+      {children}
+    </div>
+  );
+}
+
+function CheckboxCell({ checked, onToggle, disabled }) {
+  return (
+    <div className="flex justify-center">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={() => {
+          if (!disabled) onToggle?.();
+        }}
+        disabled={disabled}
+        className={`w-7 h-7 accent-blue-700 ${
+          disabled ? "opacity-40 cursor-not-allowed" : ""
+        }`}
+      />
+    </div>
+  );
+}
+
+function TableShell({ title, subtitle, rightStat, children }) {
+  return (
+    <div className="mt-12 bg-white shadow-2xl border border-slate-200 rounded-none p-10">
+      <div className="flex items-start justify-between gap-8">
+        <div>
+          <div className="text-slate-500 text-xl">Detalle</div>
+          <div className="text-slate-900 text-4xl font-extrabold mt-2">
+            {title}
+          </div>
+          <div className="mt-2 text-slate-600 text-xl">{subtitle}</div>
+        </div>
+
+        {rightStat ? (
+          <div className="text-right">
+            <div className="text-slate-500 text-lg">{rightStat.label}</div>
+            <div className="text-slate-900 text-4xl font-extrabold mt-2">
+              {rightStat.value}
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="mt-10">{children}</div>
+    </div>
+  );
 }
 
 function SummaryCard({ title, icon, amount, bgClass, active, onClick }) {
@@ -122,6 +220,7 @@ function SummaryCard({ title, icon, amount, bgClass, active, onClick }) {
           bg-linear-to-r from-transparent via-white/18 to-transparent
         "
       />
+
       <div className="relative flex items-start justify-between">
         <div className="text-6xl drop-shadow">{icon}</div>
         <div className="text-5xl text-white/60">
@@ -144,111 +243,86 @@ function SummaryCard({ title, icon, amount, bgClass, active, onClick }) {
   );
 }
 
-function TableShell({ title, subtitle, rightStat, children }) {
+/**
+ * ✅ Tabs horizontales reales
+ */
+function ContribuyenteTabs({ items, activeIndex, onChange }) {
   return (
-    <div className="mt-12 bg-white shadow-2xl border border-slate-200 rounded-none p-10">
-      <div className="flex items-start justify-between gap-8">
-        <div>
-          <div className="text-slate-500 text-xl">Detalle</div>
-          <div className="text-slate-900 text-4xl font-extrabold mt-2">
-            {title}
-          </div>
-          <div className="mt-2 text-slate-600 text-xl">{subtitle}</div>
-        </div>
+    <motion.div
+      variants={itemUp}
+      className="
+        bg-white shadow-2xl border border-slate-200
+        rounded-none
+        px-8 py-6
+        mb-10
+      "
+    >
+      <div className="text-slate-500 text-xl">Seleccione contribuyente</div>
 
-        {rightStat ? (
-          <div className="text-right">
-            <div className="text-slate-500 text-lg">{rightStat.label}</div>
-            <div className="text-slate-900 text-4xl font-extrabold mt-2">
-              {rightStat.value}
-            </div>
-          </div>
+      <div className="mt-6 w-full overflow-x-auto">
+        <div className="flex gap-4 min-w-max">
+          {items.map((c, idx) => {
+            const active = idx === activeIndex;
+
+            return (
+              <button
+                key={`${c.codigo}-${idx}`}
+                type="button"
+                onClick={() => {
+                  safePlayClick();
+                  onChange(idx);
+                }}
+                className={`
+                  px-8 py-4
+                  text-2xl font-extrabold
+                  whitespace-nowrap
+                  rounded-none
+                  border
+                  shadow
+                  transition
+                  active:scale-[0.99]
+                  ${
+                    active
+                      ? "bg-blue-700 border-blue-700 text-white"
+                      : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
+                  }
+                `}
+              >
+                {c.nombre}
+                <span
+                  className={`${
+                    active ? "text-white/80" : "text-slate-500"
+                  } font-bold ml-4`}
+                >
+                  #{c.codigo}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="mt-6 text-slate-700 text-xl">
+        <span className="font-extrabold">Activo:</span>{" "}
+        {items[activeIndex]?.nombre} —{" "}
+        <span className="font-extrabold">Código:</span>{" "}
+        {items[activeIndex]?.codigo}
+        {items[activeIndex]?.tipoPersona ? (
+          <>
+            {" "}
+            — <span className="font-extrabold">Tipo:</span>{" "}
+            {items[activeIndex].tipoPersona}
+          </>
         ) : null}
       </div>
 
-      <div className="mt-10">{children}</div>
-    </div>
-  );
-}
-
-function HeadCell({ children, align = "left" }) {
-  return (
-    <div
-      className={`text-slate-500 text-lg font-extrabold ${
-        align === "right"
-          ? "text-right"
-          : align === "center"
-          ? "text-center"
-          : ""
-      }`}
-    >
-      {children}
-    </div>
-  );
-}
-
-function BodyCell({ children, align = "left", strong = false, muted = false }) {
-  return (
-    <div
-      className={`text-xl ${
-        muted ? "text-slate-400" : strong ? "font-extrabold text-slate-900" : "text-slate-700"
-      } ${
-        align === "right"
-          ? "text-right"
-          : align === "center"
-          ? "text-center"
-          : ""
-      }`}
-    >
-      {children}
-    </div>
-  );
-}
-
-function CheckboxCell({ checked, onToggle, disabled }) {
-  return (
-    <div className="flex justify-center">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={() => {
-          if (!disabled) onToggle?.();
-        }}
-        disabled={disabled}
-        className={`w-7 h-7 accent-blue-700 ${disabled ? "opacity-40 cursor-not-allowed" : ""}`}
-      />
-    </div>
-  );
-}
-
-/**
- * ✅ Scroll X persistente:
- * - Guarda scrollLeft en un ref por "storageKey"
- * - Restaura scrollLeft después de re-renders (useLayoutEffect)
- */
-function ScrollXTable({ storageKey, scrollStoreRef, minWidthClass, children }) {
-  const scrollerRef = useRef(null);
-
-  // Restaurar scrollLeft (si existe)
-  useLayoutEffect(() => {
-    const el = scrollerRef.current;
-    if (!el) return;
-    const saved = scrollStoreRef.current?.[storageKey];
-    if (typeof saved === "number") {
-      el.scrollLeft = saved;
-    }
-  });
-
-  return (
-    <div
-      ref={scrollerRef}
-      className="w-full overflow-x-auto"
-      onScroll={(e) => {
-        scrollStoreRef.current[storageKey] = e.currentTarget.scrollLeft;
-      }}
-    >
-      <div className={minWidthClass}>{children}</div>
-    </div>
+      {items[activeIndex]?.direccion ? (
+        <div className="mt-3 text-slate-600 text-xl">
+          <span className="font-extrabold">Dirección:</span>{" "}
+          {items[activeIndex].direccion}
+        </div>
+      ) : null}
+    </motion.div>
   );
 }
 
@@ -256,16 +330,39 @@ export default function EstadoCuenta() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // ✅ viene desde Login
   const nroDoc = location.state?.nroDoc || "";
   const tipoDocLabel = location.state?.tipoDocLabel || "DNI";
 
-  if (!nroDoc) {
-    navigate("/login", { replace: true });
-    return null;
-  }
+  // Lista de contribuyentes desde login
+  const contribuyentes = useMemo(() => {
+    const list = location.state?.contribuyentes;
+    if (Array.isArray(list) && list.length > 0) return list;
 
-  // Guardamos scroll por tabla
+    // MOCKS por si no mandas state (para ver UI)
+    return [
+      {
+        codigo: "227309",
+        nombre: "Michell & CIA",
+        direccion: "Av. Ejemplo 123 - Arequipa",
+        tipoPersona: "JURÍDICA",
+      },
+      {
+        codigo: "991122",
+        nombre: "Juan Pérez",
+        direccion: "Calle Demo 456 - Arequipa",
+        tipoPersona: "NATURAL",
+      },
+    ];
+  }, [location.state]);
+
+  useEffect(() => {
+    if (!nroDoc) navigate("/login", { replace: true });
+  }, [nroDoc, navigate]);
+
+  const [contribIndex, setContribIndex] = useState(0);
+  const activeContrib = contribuyentes[contribIndex] || contribuyentes[0];
+
+  // Scroll X persistente por tabla
   const scrollStoreRef = useRef({
     predial: 0,
     vehicular: 0,
@@ -273,161 +370,173 @@ export default function EstadoCuenta() {
     transito: 0,
   });
 
-  const contribuyente = useMemo(() => {
-    return {
-      nombreRazonSocial: "Michell & CIA",
-      codigoContribuyente: "227309",
-      tipoDoc: tipoDocLabel,
-      nroDoc,
-    };
-  }, [nroDoc, tipoDocLabel]);
+  // Servicio seleccionado
+  const [activeService, setActiveService] = useState("predial");
+
+  // Selección por servicio
+  const [selectedByService, setSelectedByService] = useState(() => ({
+    predial: new Set(),
+    vehicular: new Set(),
+    arbitrios: new Set(),
+    transito: new Set(),
+  }));
+
+  // Confirmación salir
+  const [confirmSalir, setConfirmSalir] = useState(false);
 
   // =========================
-  // MOCKS (ESTADO = "A")
+  // MOCKS por contribuyente
   // =========================
 
-  // Predial: ESTADO, AÑO, PERIODO, INSOLUTO, D. EMISION, REAJUSTE, INTERES, BENEFICIO, TOTAL
-  const predialRows = useMemo(
-    () =>
-      [
-        {
-          id: "pr-1",
-          estado: "A",
-          anio: 2022,
-          periodo: "01",
-          insoluto: 1800,
-          derEmision: 50,
-          reajuste: 0,
-          interes: 120,
-          beneficio: 0,
-          total: 1970,
-        },
-        {
-          id: "pr-2",
-          estado: "A",
-          anio: 2023,
-          periodo: "02",
-          insoluto: 2100,
-          derEmision: 50,
-          reajuste: 30,
-          interes: 140,
-          beneficio: 0,
-          total: 2320,
-        },
-        {
-          id: "pr-3",
-          estado: "A",
-          anio: 2024,
-          periodo: "01",
-          insoluto: 2500,
-          derEmision: 50,
-          reajuste: 0,
-          interes: 160,
-          beneficio: 0,
-          total: 2710,
-        },
-      ].sort((a, b) => a.anio - b.anio),
-    []
-  );
+  const predialRows = useMemo(() => {
+    const base = [
+      {
+        id: "pr-1",
+        estado: "A",
+        anio: 2022,
+        periodo: "01",
+        insoluto: 1800,
+        derEmision: 50,
+        reajuste: 0,
+        interes: 120,
+        beneficio: 0,
+        total: 1970,
+      },
+      {
+        id: "pr-2",
+        estado: "A",
+        anio: 2023,
+        periodo: "02",
+        insoluto: 2100,
+        derEmision: 50,
+        reajuste: 30,
+        interes: 140,
+        beneficio: 0,
+        total: 2320,
+      },
+      {
+        id: "pr-3",
+        estado: "A",
+        anio: 2024,
+        periodo: "01",
+        insoluto: 2500,
+        derEmision: 50,
+        reajuste: 0,
+        interes: 160,
+        beneficio: 0,
+        total: 2710,
+      },
+    ];
+    const factor = contribIndex === 1 ? 1.1 : 1;
+    return base
+      .map((r) => ({
+        ...r,
+        insoluto: Math.round(r.insoluto * factor),
+        total: Math.round(r.total * factor),
+      }))
+      .sort((a, b) => a.anio - b.anio);
+  }, [contribIndex]);
 
-  // Vehicular: ESTADO, PLACA, PERIODO, INSOLUTO, DER. EM., REAJUSTE, INTERES, BENEFICIO, TOTAL
-  const vehicularRows = useMemo(
-    () =>
-      [
-        {
-          id: "vh-1",
-          estado: "A",
-          placa: "V1A-123",
-          periodo: "2023",
-          insoluto: 4200,
-          derEm: 50,
-          reajuste: 0,
-          interes: 200,
-          beneficio: 0,
-          total: 4450,
-          anioSort: 2023,
-        },
-        {
-          id: "vh-2",
-          estado: "A",
-          placa: "V1A-123",
-          periodo: "2024",
-          insoluto: 4300,
-          derEm: 50,
-          reajuste: 20,
-          interes: 230,
-          beneficio: 0,
-          total: 4600,
-          anioSort: 2024,
-        },
-      ].sort((a, b) => a.anioSort - b.anioSort),
-    []
-  );
+  const vehicularRows = useMemo(() => {
+    const base = [
+      {
+        id: "vh-1",
+        estado: "A",
+        placa: "V1A-123",
+        periodo: "2023",
+        insoluto: 4200,
+        derEm: 50,
+        reajuste: 0,
+        interes: 200,
+        beneficio: 0,
+        total: 4450,
+      },
+      {
+        id: "vh-2",
+        estado: "A",
+        placa: "V1A-123",
+        periodo: "2024",
+        insoluto: 4300,
+        derEm: 50,
+        reajuste: 20,
+        interes: 230,
+        beneficio: 0,
+        total: 4600,
+      },
+    ];
+    const factor = contribIndex === 1 ? 0.9 : 1;
+    return base
+      .map((r) => ({ ...r, total: Math.round(r.total * factor) }))
+      .sort((a, b) => String(a.periodo).localeCompare(String(b.periodo)));
+  }, [contribIndex]);
 
-  // Arbitrios: filtro por predio + ESTADO, CODIGO USO, AÑO, PERIODO, INSOLUTO, INTERES, BENEFICIO, TOTAL
-  const arbitriosAllRows = useMemo(
-    () =>
-      [
-        {
-          id: "ar-1",
-          predio: "Predio 01 - Calle A 123",
-          estado: "A",
-          codigoUso: "RES",
-          anio: 2023,
-          periodo: "01",
-          insoluto: 500,
-          interes: 20,
-          beneficio: 0,
-          total: 520,
-        },
-        {
-          id: "ar-2",
-          predio: "Predio 01 - Calle A 123",
-          estado: "A",
-          codigoUso: "RES",
-          anio: 2024,
-          periodo: "02",
-          insoluto: 520,
-          interes: 25,
-          beneficio: 0,
-          total: 545,
-        },
-        {
-          id: "ar-3",
-          predio: "Predio 02 - Av B 456",
-          estado: "A",
-          codigoUso: "COM",
-          anio: 2023,
-          periodo: "01",
-          insoluto: 850,
-          interes: 30,
-          beneficio: 0,
-          total: 880,
-        },
-        {
-          id: "ar-4",
-          predio: "Predio 02 - Av B 456",
-          estado: "A",
-          codigoUso: "COM",
-          anio: 2024,
-          periodo: "01",
-          insoluto: 900,
-          interes: 35,
-          beneficio: 0,
-          total: 935,
-        },
-      ].sort((a, b) => a.anio - b.anio),
-    []
-  );
+  const arbitriosAllRows = useMemo(() => {
+    const base = [
+      {
+        id: "ar-1",
+        predio: "Predio 01 - Calle A 123",
+        estado: "A",
+        codigoUso: "RES",
+        anio: 2023,
+        periodo: "01",
+        insoluto: 500,
+        interes: 20,
+        beneficio: 0,
+        total: 520,
+      },
+      {
+        id: "ar-2",
+        predio: "Predio 01 - Calle A 123",
+        estado: "A",
+        codigoUso: "RES",
+        anio: 2024,
+        periodo: "02",
+        insoluto: 520,
+        interes: 25,
+        beneficio: 0,
+        total: 545,
+      },
+      {
+        id: "ar-3",
+        predio: "Predio 02 - Av B 456",
+        estado: "A",
+        codigoUso: "COM",
+        anio: 2023,
+        periodo: "01",
+        insoluto: 850,
+        interes: 30,
+        beneficio: 0,
+        total: 880,
+      },
+      {
+        id: "ar-4",
+        predio: "Predio 02 - Av B 456",
+        estado: "A",
+        codigoUso: "COM",
+        anio: 2024,
+        periodo: "01",
+        insoluto: 900,
+        interes: 35,
+        beneficio: 0,
+        total: 935,
+      },
+    ];
+    const factor = contribIndex === 1 ? 1.05 : 1;
+    return base
+      .map((r) => ({ ...r, total: Math.round(r.total * factor) }))
+      .sort((a, b) => a.anio - b.anio);
+  }, [contribIndex]);
 
   const arbitriosPredios = useMemo(() => {
     const set = new Set(arbitriosAllRows.map((r) => r.predio));
     return Array.from(set);
   }, [arbitriosAllRows]);
 
-  const [arbitriosPredioSel, setArbitriosPredioSel] = useState(
-    arbitriosPredios[0] || ""
-  );
+  const [arbitriosPredioSel, setArbitriosPredioSel] = useState("");
+
+  useEffect(() => {
+    setArbitriosPredioSel(arbitriosPredios[0] || "");
+  }, [arbitriosPredios]);
 
   const arbitriosRows = useMemo(() => {
     const filtered = arbitriosAllRows.filter((r) =>
@@ -436,7 +545,6 @@ export default function EstadoCuenta() {
     return [...filtered].sort((a, b) => a.anio - b.anio);
   }, [arbitriosAllRows, arbitriosPredioSel]);
 
-  // Tránsito: NRO. INF., PLACA, TIPO INF., FEC INF., FEC VENC., INFRACTOR, TOTAL, DSCTO, P.ACUENTA, DEUDA
   const transitoRows = useMemo(
     () =>
       [
@@ -470,11 +578,10 @@ export default function EstadoCuenta() {
     []
   );
 
-  // =========================
   // Totales
-  // =========================
   const totals = useMemo(() => {
-    const sum = (arr, key) => arr.reduce((acc, r) => acc + Number(r[key] || 0), 0);
+    const sum = (arr, key) =>
+      arr.reduce((acc, r) => acc + Number(r[key] || 0), 0);
 
     return {
       predial: sum(predialRows, "total"),
@@ -493,17 +600,18 @@ export default function EstadoCuenta() {
     );
   }, [totals]);
 
-  // Servicio seleccionado
-  const [activeService, setActiveService] = useState("predial");
+  // Gate SOLO Predial y Arbitrios
+  const canSelectPredial = useMemo(
+    () => buildOldestYearGate(predialRows, (r) => r.anio, selectedByService.predial),
+    [predialRows, selectedByService.predial]
+  );
 
-  // Selección por servicio
-  const [selectedByService, setSelectedByService] = useState(() => ({
-    predial: new Set(),
-    vehicular: new Set(),
-    arbitrios: new Set(),
-    transito: new Set(),
-  }));
+  const canSelectArbitrios = useMemo(
+    () => buildOldestYearGate(arbitriosRows, (r) => r.anio, selectedByService.arbitrios),
+    [arbitriosRows, selectedByService.arbitrios]
+  );
 
+  // Acciones selección
   function toggleRow(serviceKey, rowId) {
     setSelectedByService((prev) => {
       const next = { ...prev };
@@ -542,37 +650,28 @@ export default function EstadoCuenta() {
     }
 
     return sum;
-  }, [selectedByService, predialRows, vehicularRows, arbitriosAllRows, transitoRows]);
+  }, [
+    selectedByService,
+    predialRows,
+    vehicularRows,
+    arbitriosAllRows,
+    transitoRows,
+  ]);
+
+  // Al cambiar contribuyente: limpiar selección y reset scroll
+  useEffect(() => {
+    setSelectedByService({
+      predial: new Set(),
+      vehicular: new Set(),
+      arbitrios: new Set(),
+      transito: new Set(),
+    });
+    scrollStoreRef.current = { predial: 0, vehicular: 0, arbitrios: 0, transito: 0 };
+    setActiveService("predial");
+  }, [contribIndex]);
 
   // =========================
-  // ✅ Gates (habilitación secuencial)
-  // =========================
-  const canSelectPredial = useMemo(
-    () => buildOldestYearGate(predialRows, (r) => r.anio, selectedByService.predial),
-    [predialRows, selectedByService.predial]
-  );
-
-  const canSelectVehicular = useMemo(
-    () => buildOldestYearGate(vehicularRows, (r) => r.anioSort, selectedByService.vehicular),
-    [vehicularRows, selectedByService.vehicular]
-  );
-
-  // Arbitrios: aplico la regla solo sobre el predio filtrado (lo usual en kiosko)
-  const canSelectArbitrios = useMemo(
-    () => buildOldestYearGate(arbitriosRows, (r) => r.anio, selectedByService.arbitrios),
-    [arbitriosRows, selectedByService.arbitrios]
-  );
-
-  const canSelectTransito = useMemo(
-    () => buildOldestRowGateOrdered(transitoRows, selectedByService.transito),
-    [transitoRows, selectedByService.transito]
-  );
-
-  // Modal salir
-  const [confirmSalir, setConfirmSalir] = useState(false);
-
-  // =========================
-  // Tablas
+  // TABLAS
   // =========================
 
   function PredialTable() {
@@ -656,7 +755,7 @@ export default function EstadoCuenta() {
     return (
       <TableShell
         title="Impuesto Vehicular"
-        subtitle="Solo puede seleccionar el periodo/año más antiguo pendiente. Deslice hacia la derecha para ver todas las columnas."
+        subtitle="Puede seleccionar cualquier periodo. Deslice hacia la derecha para ver todas las columnas."
         rightStat={{ label: "Subtotal", value: formatPEN(totals.vehicular) }}
       >
         <ScrollXTable
@@ -679,9 +778,8 @@ export default function EstadoCuenta() {
 
           <div className="mt-2">
             {vehicularRows.map((r) => {
-              const allowed = canSelectVehicular(r);
               const checked = selectedByService.vehicular.has(r.id);
-              const disabled = !allowed && !checked;
+              const disabled = false;
 
               return (
                 <div
@@ -830,7 +928,7 @@ export default function EstadoCuenta() {
     return (
       <TableShell
         title="Infracciones de Tránsito"
-        subtitle="Solo puede seleccionar la infracción más antigua pendiente. Deslice hacia la derecha para ver todas las columnas."
+        subtitle="Puede seleccionar cualquier infracción. Deslice hacia la derecha para ver todas las columnas."
         rightStat={{ label: "Deuda total", value: formatPEN(totals.transito) }}
       >
         <ScrollXTable
@@ -854,9 +952,8 @@ export default function EstadoCuenta() {
 
           <div className="mt-2">
             {transitoRows.map((r) => {
-              const allowed = canSelectTransito(r);
               const checked = selectedByService.transito.has(r.id);
-              const disabled = !allowed && !checked;
+              const disabled = false;
 
               return (
                 <div
@@ -921,13 +1018,11 @@ export default function EstadoCuenta() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     activeService,
-    selectedByService, // re-render necesario para habilitar/deshabilitar
+    selectedByService,
     arbitriosPredioSel,
     arbitriosRows,
     canSelectPredial,
-    canSelectVehicular,
     canSelectArbitrios,
-    canSelectTransito,
     totals,
   ]);
 
@@ -944,8 +1039,8 @@ export default function EstadoCuenta() {
           variants={itemUp}
           className="
             relative
-            bg-linear-to-b from-white-100 to-slate-200
-            text-[#0F70B3]
+            bg-linear-to-b from-sky-600 to-blue-700
+            text-white
             px-10 py-12
             flex flex-col items-center
             gap-6
@@ -958,8 +1053,8 @@ export default function EstadoCuenta() {
             className="
               absolute left-8 top-8
               w-16 h-16
-              bg-black/15 border border-black/35
-              text-black text-4xl
+              bg-white/15 border border-white/25
+              text-white text-4xl
               flex items-center justify-center
               active:scale-[0.95]
             "
@@ -972,15 +1067,18 @@ export default function EstadoCuenta() {
           <img
             src={logo}
             alt="Logo"
-            className="h-24 md:h-28 object-contain p-3"
+            className="h-24 md:h-28 object-contain bg-white/90 p-3"
           />
 
           <div className="text-center">
             <h1 className="text-5xl md:text-6xl font-extrabold">
               Estado de Cuenta
             </h1>
-            <p className="text-[#0F70B3] text-xl md:text-2xl mt-2">
-              Resumen de deudas pendientes
+            <p className="text-white/85 text-xl md:text-2xl mt-2">
+              Documento:{" "}
+              <span className="font-extrabold">
+                {tipoDocLabel} {nroDoc}
+              </span>
             </p>
           </div>
         </motion.header>
@@ -991,26 +1089,42 @@ export default function EstadoCuenta() {
           className="flex-1 bg-slate-100 px-10 py-10 overflow-auto"
         >
           <div className="max-w-6xl mx-auto">
-            {/* Contribuyente */}
+            {/* ✅ Tabs si hay 2+ contribuyentes */}
+            {contribuyentes.length >= 2 && (
+              <ContribuyenteTabs
+                items={contribuyentes}
+                activeIndex={contribIndex}
+                onChange={setContribIndex}
+              />
+            )}
+
+            {/* Contribuyente activo */}
             <motion.div
               variants={itemUp}
               className="bg-white shadow-2xl rounded-none p-10 border border-slate-200 mb-10"
             >
-              <div className="text-slate-500 text-xl">Contribuyente</div>
+              <div className="text-slate-500 text-xl">Contribuyente activo</div>
               <div className="text-slate-900 text-4xl font-extrabold mt-2 wrap-break-word">
-                {contribuyente.nombreRazonSocial}
+                {activeContrib?.nombre || "—"}
               </div>
 
               <div className="mt-6 grid grid-cols-2 gap-8">
                 <div className="text-slate-700 text-2xl">
                   <span className="font-extrabold">Código:</span>{" "}
-                  {contribuyente.codigoContribuyente}
+                  {activeContrib?.codigo || "—"}
                 </div>
                 <div className="text-slate-700 text-2xl text-right">
                   <span className="font-extrabold">Documento:</span>{" "}
-                  {contribuyente.tipoDoc} {contribuyente.nroDoc}
+                  {tipoDocLabel} {nroDoc}
                 </div>
               </div>
+
+              {activeContrib?.direccion && (
+                <div className="mt-6 text-slate-700 text-2xl">
+                  <span className="font-extrabold">Dirección:</span>{" "}
+                  {activeContrib.direccion}
+                </div>
+              )}
             </motion.div>
 
             {/* Total + carrito */}
@@ -1062,7 +1176,7 @@ export default function EstadoCuenta() {
               </div>
             </motion.div>
 
-            {/* Dashboard 2x2 */}
+            {/* Cards 2x2 */}
             <div className="grid grid-cols-2 gap-10">
               <SummaryCard
                 title="Impuesto Predial"
@@ -1072,6 +1186,7 @@ export default function EstadoCuenta() {
                 active={activeService === "predial"}
                 onClick={() => setActiveService("predial")}
               />
+
               <SummaryCard
                 title="Impuesto Vehicular"
                 icon={<BiCar />}
@@ -1080,6 +1195,7 @@ export default function EstadoCuenta() {
                 active={activeService === "vehicular"}
                 onClick={() => setActiveService("vehicular")}
               />
+
               <SummaryCard
                 title="Arbitrios Municipales"
                 icon={<BiBuildingHouse />}
@@ -1088,6 +1204,7 @@ export default function EstadoCuenta() {
                 active={activeService === "arbitrios"}
                 onClick={() => setActiveService("arbitrios")}
               />
+
               <SummaryCard
                 title="Infracciones de Tránsito"
                 icon={<BiTrafficCone />}

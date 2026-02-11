@@ -70,7 +70,11 @@ async function handleSubmit(e) {
   navigate("/estadocuenta", {
     state: {
       nroDoc: nroDocFinal,
-      tipoDocLabel, // opcional
+      tipoDocLabel,
+      contribuyentes: [
+      { codigo: "227309", nombre: "Michell & CIA", direccion: "Av. ...", tipoPersona: "JURIDICA" },
+      { codigo: "991122", nombre: "Juan Perez", direccion: "Calle ...", tipoPersona: "NATURAL" }
+      ]
     },
   });
 }
