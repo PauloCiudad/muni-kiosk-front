@@ -98,7 +98,7 @@ export default function Login() {
     };
 
     try {
-      // tu backend responde: { status, mensaje, dato: { token, refreshToken, persona } }
+      // backend responde: { status, mensaje, dato: { token, refreshToken, persona } }
       const resp = await login(body);
 
       const token = resp?.dato?.token ?? resp?.token;
@@ -116,8 +116,8 @@ export default function Login() {
       if (!docParaConsulta) throw new Error("No se obtuvo el documento para la consulta.");
 
       // traer contribuyentes
-      const contribRes = await buscarContribuyentes(docParaConsulta);
-      const contribuyentes = contribRes?.dato ?? contribRes?.data?.dato ?? [];
+      const contribRes = await buscarContribuyentes(nroDocFinal);
+      const contribuyentes = contribRes?.dato ?? [];
 
       if (!Array.isArray(contribuyentes) || contribuyentes.length === 0) {
         throw new Error("No se encontraron contribuyentes para este documento.");
@@ -126,7 +126,7 @@ export default function Login() {
       // manda a EstadoCuenta (llaves que EstadoCuenta YA espera)
       navigate("/EstadoCuenta", {
         state: {
-          nroDoc: docParaConsulta,
+          nroDoc: nroDocFinal,
           tipoDocLabel,
           contribuyentes, // raw (EstadoCuenta lo normaliza)
         },

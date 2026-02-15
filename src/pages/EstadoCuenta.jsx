@@ -19,6 +19,7 @@ import {
   traerDeudaArbitrios,
   traerDeudaInfracciones,
 } from "../services/impuestosService";
+import { logout } from "../services/authService";
 
 const container = {
   hidden: { opacity: 0 },
@@ -922,7 +923,11 @@ export default function EstadoCuenta() {
         >
           <motion.button
             variants={itemUp}
-            onClick={() => navigate(-1)}
+            onClick={() => {
+                    setConfirmSalir(false);
+                    logout();
+                    navigate((-1), {replace: true});
+                  }}
             className="
               absolute left-8 top-8
               w-16 h-16
@@ -1154,7 +1159,8 @@ export default function EstadoCuenta() {
                   type="button"
                   onClick={() => {
                     setConfirmSalir(false);
-                    navigate("/");
+                    logout();
+                    navigate("/", {replace: true});
                   }}
                   className="
                     h-24
