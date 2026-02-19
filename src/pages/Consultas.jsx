@@ -1001,10 +1001,10 @@ export default function Consultas() {
               </div>
 
               <div className="text-right">
-                <div className="text-slate-500 text-lg">Carrito</div>
+                <div className="text-slate-500 text-lg">Resumen de tu Consulta</div>
                 <button
                   type="button"
-                  onClick={() => navigate("/carrito")}
+                  onClick={() => navigate("/Checkout_pdf")}
                   className="
                     mt-3 h-20 px-10
                     bg-amber-500 hover:bg-amber-600
@@ -1015,7 +1015,7 @@ export default function Consultas() {
                   "
                 >
                   <BiCartAlt className="text-4xl" />
-                  Ir al carrito
+                    Resumen
                   {selectedCount > 0 && (
                     <span className="ml-3 bg-white/20 px-4 py-2 text-xl">{selectedCount}</span>
                   )}
