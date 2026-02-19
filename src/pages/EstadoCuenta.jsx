@@ -427,7 +427,7 @@ export default function EstadoCuenta() {
   }, [location.state]);
 
   useEffect(() => {
-    if (!nroDoc) navigate("/login", { replace: true });
+    if (!nroDoc) navigate("/Login", { replace: true });
   }, [nroDoc, navigate]);
 
   const [contribIndex, setContribIndex] = useState(0);

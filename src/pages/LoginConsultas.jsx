@@ -1,0 +1,352 @@
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { BiArrowBack, BiLogInCircle } from "react-icons/bi";
+import logo from "../assets/logos_juntos.png";
+import { login } from "../services/authService";
+import { buscarContribuyentes } from "../services/impuestosService";
+
+const container = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.12 } },
+};
+
+const itemUp = {
+  hidden: { opacity: 0, y: 14 },
+  show: { opacity: 1, y: 0 },
+};
+
+const DOC_TYPES = [
+  { value: "1", label: "DNI" },
+  { value: "2", label: "RUC" },
+  { value: "3", label: "Pasaporte" },
+  { value: "4", label: "Carnet de Extranjería" },
+  { value: "5", label: "S/D" },
+];
+
+const COLORS = {
+  azul: "#0B6FB3",
+  azulProfundo: "#0A4A78",
+};
+
+function onlyDigits(value) {
+  return value.replace(/\D/g, "");
+}
+
+export default function Loginconsultas() {
+  const navigate = useNavigate();
+
+  const [tipoDoc, setTipoDoc] = useState("1");
+  const [nroDoc, setNroDoc] = useState("");
+  const [correo, setCorreo] = useState("");
+  const [celular, setCelular] = useState("");
+  const [error, setError] = useState("");
+
+  const [loading, setLoading] = useState(false);
+
+  const isSD = tipoDoc === "5";
+
+  const tipoDocLabel = useMemo(() => {
+    return DOC_TYPES.find((d) => d.value === tipoDoc)?.label ?? "";
+  }, [tipoDoc]);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    const nroDocFinal = isSD ? "0" : nroDoc.trim();
+
+    // validaciones (las tuyas)
+    if (!tipoDoc) {
+      setLoading(false);
+      return setError("Seleccione el tipo de documento.");
+    }
+    if (tipoDoc !== "1") {
+      setLoading(false);
+      return setError("Por el momento el login solo está habilitado con DNI.");
+    }
+    if (!nroDocFinal) {
+      setLoading(false);
+      return setError("Ingrese el número de documento.");
+    }
+    if (nroDocFinal.length !== 8) {
+      setLoading(false);
+      return setError("El DNI debe tener 8 dígitos.");
+    }
+    if (!correo.trim()) {
+      setLoading(false);
+      return setError("Ingrese el correo electrónico.");
+    }
+    if (!celular.trim()) {
+      setLoading(false);
+      return setError("Ingrese el número de celular.");
+    }
+    if (!correo.includes("@")) {
+      setLoading(false);
+      return setError("Correo inválido.");
+    }
+    if (celular.trim().length !== 9) {
+      setLoading(false);
+      return setError("El celular debe tener 9 dígitos.");
+    }
+
+    const body = {
+      nroDni: nroDocFinal,
+      correoElectronico: correo.trim(),
+      nroCelular: celular.trim(),
+    };
+
+    try {
+      // backend responde: { status, mensaje, dato: { token, refreshToken, persona } }
+      const resp = await login(body);
+
+      const token = resp?.dato?.token ?? resp?.token;
+      const refreshToken = resp?.dato?.refreshToken ?? resp?.refreshToken;
+      const persona = resp?.dato?.persona ?? resp?.persona;
+
+      if (!token) throw new Error("No se recibió token del servidor.");
+
+      localStorage.setItem("auth_token", token);
+      if (refreshToken) localStorage.setItem("refresh_token", refreshToken);
+      if (persona) localStorage.setItem("persona", JSON.stringify(persona));
+
+      // Documento real para consultas (si el backend devuelve persona.nroDni lo usamos)
+      const docParaConsulta = String(persona?.nroDni || nroDocFinal).trim();
+      if (!docParaConsulta) throw new Error("No se obtuvo el documento para la consulta.");
+
+      // traer contribuyentes
+      const contribRes = await buscarContribuyentes(nroDocFinal);
+      const contribuyentes = contribRes?.dato ?? [];
+
+      if (!Array.isArray(contribuyentes) || contribuyentes.length === 0) {
+        throw new Error("No se encontraron contribuyentes para este documento.");
+      }
+
+      // manda a EstadoCuenta (llaves que EstadoCuenta YA espera)
+      navigate("/Consultas", {
+        state: {
+          nroDoc: nroDocFinal,
+          tipoDocLabel,
+          contribuyentes, // raw (EstadoCuenta lo normaliza)
+        },
+      });
+    } catch (err) {
+      setError(err?.message || "No se pudo iniciar sesión.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <motion.div
+      className="w-screen h-screen bg-slate-200"
+      variants={container}
+      initial="hidden"
+      animate="show"
+    >
+      <div className="w-full h-full flex flex-col bg-white overflow-hidden">
+        {/* HEADER */}
+        <motion.header
+          variants={itemUp}
+          className="
+            relative
+            bg-linear-to-b from-white-100 to-slate-200
+            text-[#0F70B3]
+            px-10 py-12
+            flex flex-col items-center
+            gap-6
+            shadow
+          "
+        >
+          <motion.button
+            variants={itemUp}
+            onClick={() => navigate("/")}
+            className="
+              absolute left-8 top-8
+              w-16 h-16
+              bg-black/15 border border-black/35
+              text-black text-4xl
+              flex items-center justify-center
+              active:scale-[0.95]
+            "
+            aria-label="Volver"
+            type="button"
+          >
+            <BiArrowBack />
+          </motion.button>
+
+          <img
+            src={logo}
+            alt="Municipalidad Provincial de Arequipa"
+            className="h-24 md:h-70 object-contain p-3"
+          />
+
+          <div className="text-center">
+            <h1 className="text-5xl md:text-6xl font-extrabold">Consultas en Línea</h1>
+            <p className="text-[#0F70B3] text-xl md:text-2xl mt-2">
+              Ingrese sus datos para continuar
+            </p>
+          </div>
+        </motion.header>
+
+        {/* BODY */}
+        <motion.main
+          variants={container}
+          className="flex-1 bg-slate-100 px-10 py-10 flex items-start justify-center"
+        >
+          <motion.form
+            onSubmit={handleSubmit}
+            variants={container}
+            className="
+              w-full
+              max-w-245
+              bg-white
+              shadow-2xl
+              rounded-none
+              p-10
+              flex flex-col gap-8
+            "
+          >
+            {/* Error */}
+            {error && (
+              <motion.div
+                variants={itemUp}
+                className="border border-red-200 bg-red-50 text-red-700 p-5 font-extrabold text-xl"
+              >
+                {error}
+              </motion.div>
+            )}
+
+            {/* FILA 1 */}
+            <div className="grid grid-cols-2 gap-8">
+              <motion.div variants={itemUp} className="flex flex-col gap-3">
+                <label className="text-2xl font-extrabold text-slate-800">
+                  Tipo de Documento
+                </label>
+                <select
+                  value={tipoDoc}
+                  onChange={(e) => setTipoDoc(e.target.value)}
+                  className="
+                    h-20
+                    border border-slate-300
+                    px-5
+                    text-2xl
+                    bg-white
+                    focus:outline-none focus:ring-4 focus:ring-blue-300
+                  "
+                >
+                  {DOC_TYPES.map((d) => (
+                    <option key={d.value} value={d.value}>
+                      {d.label}
+                    </option>
+                  ))}
+                </select>
+              </motion.div>
+
+              <motion.div variants={itemUp} className="flex flex-col gap-3">
+                <label className="text-2xl font-extrabold text-slate-800">
+                  Nro. de Documento
+                </label>
+                <input
+                  value={nroDoc}
+                  onChange={(e) => setNroDoc(onlyDigits(e.target.value))}
+                  disabled={isSD || loading}
+                  placeholder={isSD ? "S/D usa 0 automáticamente" : `Ingrese ${tipoDocLabel}`}
+                  className={`
+                    h-20
+                    border
+                    px-5
+                    text-2xl
+                    focus:outline-none focus:ring-4 focus:ring-blue-300
+                    ${isSD ? "border-slate-200 bg-slate-100 text-slate-400" : "border-slate-300 bg-white"}
+                  `}
+                  inputMode="numeric"
+                />
+                {isSD && (
+                  <div className="text-sm text-slate-500">* S/D: se enviará nro_doc = 0</div>
+                )}
+              </motion.div>
+            </div>
+
+            {/* FILA 2 */}
+            <motion.div variants={itemUp} className="flex flex-col gap-3">
+              <label className="text-2xl font-extrabold text-slate-800">
+                Correo Electrónico
+              </label>
+              <input
+                type="email"
+                value={correo}
+                onChange={(e) => setCorreo(e.target.value)}
+                disabled={loading}
+                placeholder="correo@ejemplo.com"
+                className="
+                  h-20
+                  border border-slate-300
+                  px-5
+                  text-2xl
+                  bg-white
+                  focus:outline-none focus:ring-4 focus:ring-blue-300
+                "
+                autoComplete="email"
+              />
+            </motion.div>
+
+            {/* FILA 3 */}
+            <motion.div variants={itemUp} className="flex flex-col gap-3">
+              <label className="text-2xl font-extrabold text-slate-800">
+                Número de Celular
+              </label>
+              <input
+                value={celular}
+                onChange={(e) => setCelular(onlyDigits(e.target.value).slice(0, 9))}
+                disabled={loading}
+                placeholder="Ej. 987654321"
+                className="
+                  h-20
+                  border border-slate-300
+                  px-5
+                  text-2xl
+                  bg-white
+                  focus:outline-none focus:ring-4 focus:ring-blue-300
+                "
+                inputMode="numeric"
+              />
+              <div className="text-sm text-slate-500">* Solo números (9 dígitos)</div>
+            </motion.div>
+
+            {/* SUBMIT */}
+            <motion.button
+              variants={itemUp}
+              whileTap={{ scale: 0.97 }}
+              className="
+                h-24
+                text-white
+                text-3xl
+                font-extrabold
+                shadow-xl
+                active:opacity-95
+              "
+              style={{ backgroundColor: COLORS.azul, opacity: loading ? 0.8 : 1 }}
+              type="submit"
+              disabled={loading}
+            >
+              <span className="inline-flex items-center justify-center gap-4">
+                <BiLogInCircle className="text-5xl" />
+                {loading ? "Validando..." : "Buscar"}
+              </span>
+            </motion.button>
+          </motion.form>
+        </motion.main>
+
+        {/* FOOTER */}
+        <motion.footer
+          variants={itemUp}
+          className="py-6 text-center text-slate-400 text-base bg-white border-t"
+        >
+          © Municipalidad Provincial de Arequipa - Todos los derechos reservados
+        </motion.footer>
+      </div>
+    </motion.div>
+  );
+}
