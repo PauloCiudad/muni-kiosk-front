@@ -29,6 +29,14 @@ function clearAuthStorage() {
  *  ========================= */
 const inflight = new Set();
 
+/** =========================
+ *  Cache en memoria
+ *  ========================= */
+const responseCache = new Map();
+
+// Tiempo de vida del cache (ej: 2 minutos)
+const CACHE_TTL = 1000 * 60 * 2;
+
 export function abortAllRequests() {
   for (const ctrl of inflight) ctrl.abort();
   inflight.clear();
@@ -106,9 +114,21 @@ function looksLikeExpiredToken(data) {
 
 export async function apiRequest(
   path,
-  { method = "POST", body, auth = true, signal } = {}
+  { method = "POST", body, auth = true, signal, useCache = false } = {}
 ) {
   const url = joinUrl(BASE_URL, path);
+
+  const cacheKey = buildCacheKey(path, method, body);
+
+  if (useCache && responseCache.has(cacheKey)) {
+    const { data, timestamp } = responseCache.get(cacheKey);
+
+    if (Date.now() - timestamp < CACHE_TTL) {
+      return data; // 🔥 devuelve del cache
+    } else {
+      responseCache.delete(cacheKey); // expiró
+    }
+  }
 
   const ctrl = new AbortController();
   inflight.add(ctrl);
@@ -191,10 +211,22 @@ export async function apiRequest(
       }
     }
 
+    // Guardar en cache si está habilitado
+    if (useCache) {
+      responseCache.set(cacheKey, {
+        data,
+        timestamp: Date.now(),
+      });
+    }
+
     return data;
   } finally {
     inflight.delete(ctrl);
   }
+}
+
+export function clearCache() {
+  responseCache.clear();
 }
 
 /** Helper: combinar AbortSignals (Chrome moderno). */
@@ -210,4 +242,8 @@ function anySignal(signals) {
     s.addEventListener("abort", onAbort, { once: true });
   }
   return controller.signal;
+}
+
+function buildCacheKey(path, method, body) {
+  return `${method}:${path}:${body ? JSON.stringify(body) : ""}`;
 }

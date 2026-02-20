@@ -1,4 +1,5 @@
 import { apiRequest, abortAllRequests } from "./apiClient";
+import { abortAllRequests, clearCache } from "./apiClient";
 
 export async function login(payload) {
   const data = await apiRequest("/PagosWebLogin/login_toten", {
@@ -22,11 +23,9 @@ export async function login(payload) {
 
 export function logout() {
   abortAllRequests();
+  clearCache();
 
-  // limpia storage (tokens, persona)
   localStorage.removeItem("auth_token");
   localStorage.removeItem("refresh_token");
   localStorage.removeItem("persona");
-
-  // localStorage.removeItem("estadoCuenta_cache");
 }

@@ -6,6 +6,7 @@ export async function buscarContribuyentes(numeroDocumento) {
     method: "POST",
     body: { numeroDocumento },
     auth: true,
+    useCache: true,
   });
 }
 
@@ -15,6 +16,7 @@ export async function traerDeudaImpuestos({ conApagId, admCodigo }) {
     method: "POST",
     body: { conApagId: String(conApagId), admCodigo },
     auth: true,
+    useCache: true,
   });
 }
 
@@ -24,6 +26,7 @@ export async function traerPredios(admCodigo) {
     method: "POST",
     body: { admCodigo },
     auth: true,
+    useCache: true,
   });
 }
 
@@ -33,6 +36,7 @@ export async function traerDeudaArbitrios(admCodigo) {
     method: "POST",
     body: { admCodigo },
     auth: true,
+    useCache: true,
   });
 }
 
@@ -48,5 +52,6 @@ export async function traerDeudaInfracciones({ infractorDni }) {
       carrId: "",
     },
     auth: true,
+    useCache: true,
   });
 }
