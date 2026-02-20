@@ -108,7 +108,7 @@ export default function Home() {
       initial="hidden"
       animate="show"
     >
-      {/* App full-screen (monitor vertical real) */}
+      {/* App full-screen */}
       <div className="w-full h-full flex flex-col bg-white overflow-hidden">
         {/* HEADER */}
         <motion.header
