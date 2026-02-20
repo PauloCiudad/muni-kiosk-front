@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { BiArrowBack, BiTrash, BiCartAlt, BiCreditCard, BiX } from "react-icons/bi";
+import { BiArrowBack, BiTrash, BiCartAlt, BiSolidFilePdf, BiX } from "react-icons/bi";
 import logo from "../assets/logos_juntos.png";
 import { useCartStore } from "../store/cartStore";
 
@@ -24,7 +24,7 @@ function Pill({ children }) {
   );
 }
 
-export default function Carrito() {
+export default function Checkout_pdf() {
   const navigate = useNavigate();
   const items = useCartStore((s) => s.items);
   const removeItem = useCartStore((s) => s.removeItem);
@@ -82,7 +82,7 @@ export default function Carrito() {
 
           <img src={logo} alt="Logo" className="h-24 md:h-28 object-contain p-3" />
           <div className="text-center">
-            <h1 className="text-5xl md:text-6xl font-extrabold">Carrito</h1>
+            <h1 className="text-5xl md:text-6xl font-extrabold">Envío a Correo</h1>
             <p className="text-[#0F70B3] text-xl md:text-2xl mt-2">
               Revise los conceptos seleccionados
             </p>
@@ -110,7 +110,7 @@ export default function Carrito() {
                   <Pill>Total: {formatPEN(total)}</Pill>
                   <Pill>
                     <BiCartAlt className="mr-2 text-2xl" />
-                    Kiosko Pagos en Línea
+                    Consultas en Línea
                   </Pill>
                 </div>
               </div>
@@ -124,8 +124,8 @@ export default function Carrito() {
                     ${items.length ? "bg-emerald-600 hover:bg-emerald-700" : "bg-slate-400 cursor-not-allowed"}
                   `}
                 >
-                  <BiCreditCard className="text-4xl" />
-                  Comprar
+                  <BiSolidFilePdf className="text-4xl" />
+                  Envíar PDF
                 </button>
 
                 <button
@@ -348,8 +348,8 @@ export default function Carrito() {
                   onClick={handleComprar}
                   className="h-24 bg-emerald-600 hover:bg-emerald-700 text-white text-3xl font-extrabold shadow-xl rounded-none active:scale-[0.98] inline-flex items-center justify-center gap-4"
                 >
-                  <BiCreditCard className="text-5xl" />
-                  Comprar
+                  <BiSolidFilePdf className="text-5xl" />
+                  Enviar PDF
                 </button>
               </div>
             </motion.div>

@@ -21,7 +21,6 @@ import {
 } from "../services/impuestosService";
 import { logout } from "../services/authService";
 
-
 const container = {
   hidden: { opacity: 0 },
   show: { opacity: 1, transition: { staggerChildren: 0.1 } },
@@ -288,10 +287,7 @@ function ContribuyenteTabsBrowser({ items, activeIndex, onChange }) {
   }, [activeIndex]);
 
   return (
-    <motion.div
-      variants={itemUp}
-      className="bg-white shadow-2xl border border-slate-200 rounded-none mb-10"
-    >
+    <motion.div variants={itemUp} className="bg-white shadow-2xl border border-slate-200 rounded-none mb-10">
       <div className="px-8 pt-6 text-slate-500 text-xl">Seleccione contribuyente</div>
 
       <div className="mt-4 px-4 pb-0">
@@ -497,7 +493,7 @@ export default function Consultas() {
                   beneficio: Number(r.nbeneficio ?? 0),
                   total: Number(r.ntotal ?? 0),
                 }))
-                .sort((a, b) => (a.anio - b.anio) || String(a.periodo).localeCompare(String(b.periodo)))
+                .sort((a, b) => a.anio - b.anio || String(a.periodo).localeCompare(String(b.periodo)))
             : []
         );
 
@@ -507,7 +503,10 @@ export default function Consultas() {
           Array.isArray(vehicularDato)
             ? vehicularDato
                 .map((r) => ({
-                  id: String(r.ctacte_iid ?? `${r.ctacte_ianio}-${r.ctacte_iperiodo}-${r.ctacte_vplaca}-${Math.random()}`),
+                  id: String(
+                    r.ctacte_iid ??
+                      `${r.ctacte_ianio}-${r.ctacte_iperiodo}-${r.ctacte_vplaca}-${Math.random()}`
+                  ),
                   estado: r.ctacte_vestado ?? "",
                   placa: r.ctacte_vplaca ?? "",
                   periodo: r.periodo ?? String(r.ctacte_ianio ?? ""),
@@ -548,7 +547,7 @@ export default function Consultas() {
                   beneficio: Number(r.nbeneficio ?? 0),
                   total: Number(r.ntotal ?? 0),
                 }))
-                .sort((a, b) => (a.anio - b.anio) || String(a.periodo).localeCompare(String(b.periodo)))
+                .sort((a, b) => a.anio - b.anio || String(a.periodo).localeCompare(String(b.periodo)))
             : []
         );
 
@@ -678,8 +677,116 @@ export default function Consultas() {
     setActiveService("predial");
   }, [contribIndex]);
 
-  // ===== TABLAS =====
+  // ========= SOLO SE AÑADE ESTO (CARRITO) =========
+  function buildCartItems() {
+    const items = [];
 
+    for (const id of selectedByService.predial) {
+      const r = predialRows.find((x) => x.id === id);
+      if (r) {
+        items.push({
+          service: "predial",
+          id: r.id,
+          estado: r.estado,
+          anio: r.anio,
+          periodo: r.periodo,
+          insoluto: r.insoluto,
+          derEmision: r.derEmision,
+          reajuste: r.reajuste,
+          interes: r.interes,
+          beneficio: r.beneficio,
+          total: r.total,
+        });
+      }
+    }
+
+    for (const id of selectedByService.vehicular) {
+      const r = vehicularRows.find((x) => x.id === id);
+      if (r) {
+        items.push({
+          service: "vehicular",
+          id: r.id,
+          estado: r.estado,
+          placa: r.placa,
+          periodo: r.periodo,
+          insoluto: r.insoluto,
+          derEm: r.derEm,
+          reajuste: r.reajuste,
+          interes: r.interes,
+          beneficio: r.beneficio,
+          total: r.total,
+        });
+      }
+    }
+
+    for (const id of selectedByService.arbitrios) {
+      const r = arbitriosAllRows.find((x) => x.id === id);
+      if (r) {
+        items.push({
+          service: "arbitrios",
+          id: r.id,
+          estado: r.estado,
+          codigoUso: r.codigoUso,
+          anio: r.anio,
+          periodo: r.periodo,
+          insoluto: r.insoluto,
+          interes: r.interes,
+          beneficio: r.beneficio,
+          total: r.total,
+        });
+      }
+    }
+
+    for (const id of selectedByService.transito) {
+      const r = transitoRows.find((x) => x.id === id);
+      if (r) {
+        items.push({
+          service: "transito",
+          id: r.id,
+          nroInf: r.nroInf,
+          placa: r.placa,
+          tipoInf: r.tipoInf,
+          fecInf: r.fecInf,
+          fecVenc: r.fecVenc,
+          infractor: r.infractor,
+          total: r.total,
+          dscto: r.dscto,
+          pacuenta: r.pacuenta,
+          deuda: r.deuda,
+        });
+      }
+    }
+
+    return items;
+  }
+
+  function goToCart() {
+    safePlayClick();
+
+    const cart = buildCartItems();
+    const meta = {
+      nroDoc,
+      tipoDocLabel,
+      contribuyente: {
+        codigo: activeContrib?.codigo || "",
+        admCodigo: activeContrib?.admCodigo || "",
+        nombre: activeContrib?.nombre || "",
+        direccion: activeContrib?.direccion || "",
+        tipoPersona: activeContrib?.tipoPersona || "",
+      },
+      subtotalSeleccionado,
+      selectedCount,
+    };
+
+    localStorage.setItem("cart_items", JSON.stringify(cart));
+    localStorage.setItem("cart_meta", JSON.stringify(meta));
+
+    // Mantengo tu ruta tal cual
+    navigate("/Checkout_pdf", { state: { cart, meta } });
+  }
+  // ========= FIN (CARRITO) =========
+
+  // ===== TABLAS =====
   function PredialTable() {
     return (
       <TableShell
@@ -925,10 +1032,10 @@ export default function Consultas() {
           <motion.button
             variants={itemUp}
             onClick={() => {
-                    setConfirmSalir(false);
-                    logout();
-                    navigate((-1), {replace: true});
-                  }}
+              setConfirmSalir(false);
+              logout();
+              navigate(-1, { replace: true });
+            }}
             className="
               absolute left-8 top-8
               w-16 h-16
@@ -1003,9 +1110,11 @@ export default function Consultas() {
 
               <div className="text-right">
                 <div className="text-slate-500 text-lg">Resumen de tu Consulta</div>
+
+                {/* ✅ SOLO CAMBIÉ EL onClick PARA AÑADIR AL CARRITO */}
                 <button
                   type="button"
-                  onClick={() => navigate("/Checkout_pdf")}
+                  onClick={goToCart}
                   className="
                     mt-3 h-20 px-10
                     bg-amber-500 hover:bg-amber-600
@@ -1016,7 +1125,7 @@ export default function Consultas() {
                   "
                 >
                   <BiCartAlt className="text-4xl" />
-                    Resumen
+                  Resumen
                   {selectedCount > 0 && (
                     <span className="ml-3 bg-white/20 px-4 py-2 text-xl">{selectedCount}</span>
                   )}
@@ -1161,7 +1270,7 @@ export default function Consultas() {
                   onClick={() => {
                     setConfirmSalir(false);
                     logout();
-                    navigate("/", {replace: true});
+                    navigate("/", { replace: true });
                   }}
                   className="
                     h-24
