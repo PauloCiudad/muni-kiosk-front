@@ -26,6 +26,7 @@ function Pill({ children }) {
 
 export default function Checkout_pdf() {
   const navigate = useNavigate();
+
   const items = useCartStore((s) => s.items);
   const removeItem = useCartStore((s) => s.removeItem);
   const clear = useCartStore((s) => s.clear);
@@ -58,12 +59,7 @@ export default function Checkout_pdf() {
   }
 
   return (
-    <motion.div
-      className="w-screen h-screen bg-slate-200"
-      variants={container}
-      initial="hidden"
-      animate="show"
-    >
+    <motion.div className="w-screen h-screen bg-slate-200" variants={container} initial="hidden" animate="show">
       <div className="w-full h-full flex flex-col bg-white overflow-hidden">
         {/* HEADER */}
         <motion.header
@@ -81,19 +77,15 @@ export default function Checkout_pdf() {
           </motion.button>
 
           <img src={logo} alt="Logo" className="h-24 md:h-28 object-contain p-3" />
+
           <div className="text-center">
             <h1 className="text-5xl md:text-6xl font-extrabold">Envío a Correo</h1>
-            <p className="text-[#0F70B3] text-xl md:text-2xl mt-2">
-              Revise los conceptos seleccionados
-            </p>
+            <p className="text-[#0F70B3] text-xl md:text-2xl mt-2">Revise los conceptos seleccionados</p>
           </div>
         </motion.header>
 
         {/* BODY */}
-        <motion.main
-          variants={container}
-          className="flex-1 bg-slate-100 px-10 py-10 overflow-auto"
-        >
+        <motion.main variants={container} className="flex-1 bg-slate-100 px-10 py-10 overflow-auto">
           <div className="max-w-6xl mx-auto">
             {/* Resumen */}
             <motion.div
@@ -102,9 +94,7 @@ export default function Checkout_pdf() {
             >
               <div>
                 <div className="text-slate-500 text-xl">Ítems seleccionados</div>
-                <div className="text-slate-900 text-6xl font-extrabold mt-2">
-                  {items.length}
-                </div>
+                <div className="text-slate-900 text-6xl font-extrabold mt-2">{items.length}</div>
 
                 <div className="mt-6 flex flex-wrap gap-4">
                   <Pill>Total: {formatPEN(total)}</Pill>
@@ -151,10 +141,7 @@ export default function Checkout_pdf() {
               ) : (
                 <div className="flex flex-col gap-10">
                   {grouped.map(([service, list]) => (
-                    <div
-                      key={service}
-                      className="bg-white shadow-2xl border border-slate-200 rounded-none p-10"
-                    >
+                    <div key={service} className="bg-white shadow-2xl border border-slate-200 rounded-none p-10">
                       <div className="flex items-start justify-between gap-6">
                         <div>
                           <div className="text-slate-500 text-xl">Detalle</div>
@@ -167,10 +154,9 @@ export default function Checkout_pdf() {
                               ? "Arbitrios Municipales"
                               : "Infracciones de Tránsito"}
                           </div>
-                          <div className="mt-2 text-slate-600 text-xl">
-                            Ítems: {list.length}
-                          </div>
+                          <div className="mt-2 text-slate-600 text-xl">Ítems: {list.length}</div>
                         </div>
+
                         <div className="text-right">
                           <div className="text-slate-500 text-lg">Subtotal</div>
                           <div className="text-slate-900 text-4xl font-extrabold mt-2">
@@ -186,9 +172,7 @@ export default function Checkout_pdf() {
                             className="border border-slate-200 p-8 rounded-none flex items-start justify-between gap-8"
                           >
                             <div className="flex-1">
-                              <div className="text-slate-900 text-2xl font-extrabold">
-                                {it.title}
-                              </div>
+                              <div className="text-slate-900 text-2xl font-extrabold">{it.title}</div>
 
                               <div className="mt-4 flex flex-wrap gap-3">
                                 {Object.entries(it.meta || {}).map(([k, v]) =>
@@ -204,9 +188,7 @@ export default function Checkout_pdf() {
 
                             <div className="text-right min-w-55">
                               <div className="text-slate-500 text-lg">Monto</div>
-                              <div className="text-slate-900 text-4xl font-extrabold mt-2">
-                                {formatPEN(it.amount)}
-                              </div>
+                              <div className="text-slate-900 text-4xl font-extrabold mt-2">{formatPEN(it.amount)}</div>
 
                               <button
                                 type="button"
@@ -228,10 +210,7 @@ export default function Checkout_pdf() {
           </div>
         </motion.main>
 
-        <motion.footer
-          variants={itemUp}
-          className="py-6 text-center text-slate-400 text-base bg-white border-t"
-        >
+        <motion.footer variants={itemUp} className="py-6 text-center text-slate-400 text-base bg-white border-t">
           Municipalidad Provincial de Arequipa
         </motion.footer>
       </div>
@@ -256,12 +235,8 @@ export default function Checkout_pdf() {
             >
               <div className="flex items-start justify-between gap-6">
                 <div>
-                  <div className="text-slate-900 text-4xl font-extrabold">
-                    ¿Vaciar el carrito?
-                  </div>
-                  <div className="mt-3 text-slate-600 text-2xl">
-                    Se eliminarán todos los ítems seleccionados.
-                  </div>
+                  <div className="text-slate-900 text-4xl font-extrabold">¿Vaciar el carrito?</div>
+                  <div className="mt-3 text-slate-600 text-2xl">Se eliminarán todos los ítems seleccionados.</div>
                 </div>
                 <button
                   type="button"
@@ -318,9 +293,7 @@ export default function Checkout_pdf() {
             >
               <div className="flex items-start justify-between gap-6">
                 <div>
-                  <div className="text-slate-900 text-4xl font-extrabold">
-                    Confirmar compra
-                  </div>
+                  <div className="text-slate-900 text-4xl font-extrabold">Confirmar compra</div>
                   <div className="mt-3 text-slate-600 text-2xl">
                     Total a pagar: <span className="font-extrabold">{formatPEN(total)}</span>
                   </div>
