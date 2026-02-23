@@ -22,12 +22,16 @@ function clearAuthStorage() {
   localStorage.removeItem("auth_token");
   localStorage.removeItem("refresh_token");
   localStorage.removeItem("persona");
+  localStorage.removeItem("auth_exp_at");
 }
 
 /** =========================
- *  Abort de requests
+ *  Abort de requests (para evitar requests colgando)
  *  ========================= */
-const inflight = new Set();
+const inflightControllers = new Set();
+
+// Dedupe (evita requests duplicadas iguales)
+const inflightRequests = new Map();
 
 /** =========================
  *  Cache en memoria
@@ -38,8 +42,9 @@ const responseCache = new Map();
 const CACHE_TTL = 1000 * 60 * 2;
 
 export function abortAllRequests() {
-  for (const ctrl of inflight) ctrl.abort();
-  inflight.clear();
+  for (const ctrl of inflightControllers) ctrl.abort();
+  inflightControllers.clear();
+  inflightRequests.clear();
 }
 
 /** =========================
@@ -47,7 +52,8 @@ export function abortAllRequests() {
  *  ========================= */
 let refreshPromise = null;
 
-async function refreshAccessToken() {
+// Exportado para auto-refresh (timer) desde authService
+export async function refreshAccessToken() {
   if (refreshPromise) return refreshPromise;
 
   const refreshToken = getRefreshToken();
@@ -65,7 +71,7 @@ async function refreshAccessToken() {
       body: JSON.stringify({ refreshToken }),
     });
 
-    const data = await res.json().catch(() => null);
+    const data = await safeJson(res);
 
     if (!res.ok) {
       clearAuthStorage();
@@ -73,8 +79,13 @@ async function refreshAccessToken() {
       throw new Error(msg);
     }
 
-    const newToken = data?.token;
-    const newRefresh = data?.refreshToken;
+    // Algunos backends devuelven directamente { token, refreshToken, tiempoExp }
+    // Otros devuelven { dato: { token, refreshToken, tiempoExp } }
+    const payload = data?.dato ?? data;
+
+    const newToken = payload?.token;
+    const newRefresh = payload?.refreshToken;
+    const tiempoExp = payload?.tiempoExp ?? payload?.expiresIn ?? payload?.expires_in;
 
     if (!newToken) {
       clearAuthStorage();
@@ -82,7 +93,9 @@ async function refreshAccessToken() {
     }
 
     setTokens({ token: newToken, refreshToken: newRefresh });
-    return { token: newToken, refreshToken: newRefresh, raw: data };
+    if (tiempoExp != null) setAuthExpiry(tiempoExp);
+
+    return { token: newToken, refreshToken: newRefresh, tiempoExp, raw: data };
   })();
 
   try {
@@ -95,15 +108,9 @@ async function refreshAccessToken() {
 /** =========================
  *  Request con retry
  *  ========================= */
-async function doFetch(url, { method, headers, body }, controller) {
-  const res = await fetch(url, {
-    method,
-    headers,
-    body,
-    signal: controller?.signal,
-  });
-
-  const data = await res.json().catch(() => null);
+async function doFetch(url, init) {
+  const res = await fetch(url, init);
+  const data = await safeJson(res);
   return { res, data };
 }
 
@@ -114,7 +121,14 @@ function looksLikeExpiredToken(data) {
 
 export async function apiRequest(
   path,
-  { method = "POST", body, auth = true, signal, useCache = false } = {}
+  {
+    method = "POST",
+    body,
+    auth = true,
+    signal,
+    useCache = false,
+    dedupe = true,
+  } = {}
 ) {
   const url = joinUrl(BASE_URL, path);
 
@@ -124,18 +138,16 @@ export async function apiRequest(
     const { data, timestamp } = responseCache.get(cacheKey);
 
     if (Date.now() - timestamp < CACHE_TTL) {
-      return data; // 🔥 devuelve del cache
+      return data;
     } else {
-      responseCache.delete(cacheKey); // expiró
+      responseCache.delete(cacheKey);
     }
   }
 
   const ctrl = new AbortController();
-  inflight.add(ctrl);
+  inflightControllers.add(ctrl);
 
-  const combinedSignal = signal
-    ? anySignal([signal, ctrl.signal])
-    : ctrl.signal;
+  const combinedSignal = signal ? anySignal([signal, ctrl.signal]) : ctrl.signal;
 
   const headers = { "Content-Type": "application/json" };
   if (auth) {
@@ -150,22 +162,25 @@ export async function apiRequest(
     signal: combinedSignal,
   };
 
-  try {
-    // 1er intento
-    let { res, data } = await doFetch(url, requestInit, null);
+  // Dedupe: si la misma request ya está en vuelo, reutilizar promesa.
+  const inflightKey = dedupe ? buildCacheKey(url, method, body) : null;
+  if (inflightKey && inflightRequests.has(inflightKey)) {
+    return inflightRequests.get(inflightKey);
+  }
 
-    // Manejo HTTP no ok
+  const run = (async () => {
+    // 1er intento
+    let { res, data } = await doFetch(url, requestInit);
+
     if (!res.ok) {
-      // si token expiró => intenta refresh y retry 1 vez
       if ((res.status === 401 || res.status === 403) && auth) {
         await refreshAccessToken();
 
-        // reintenta con el token nuevo
         const newHeaders = { ...headers };
         const newToken = getToken();
         if (newToken) newHeaders.Authorization = `Bearer ${newToken}`;
 
-        ({ res, data } = await doFetch(url, { ...requestInit, headers: newHeaders }, null));
+        ({ res, data } = await doFetch(url, { ...requestInit, headers: newHeaders }));
 
         if (!res.ok) {
           const msg2 = data?.message || data?.mensaje || `Error HTTP ${res.status}`;
@@ -192,7 +207,7 @@ export async function apiRequest(
         const newToken = getToken();
         if (newToken) newHeaders.Authorization = `Bearer ${newToken}`;
 
-        ({ res, data } = await doFetch(url, { ...requestInit, headers: newHeaders }, null));
+        ({ res, data } = await doFetch(url, { ...requestInit, headers: newHeaders }));
 
         if (!res.ok) {
           const msg2 = data?.message || data?.mensaje || `Error HTTP ${res.status}`;
@@ -211,17 +226,20 @@ export async function apiRequest(
       }
     }
 
-    // Guardar en cache si está habilitado
     if (useCache) {
-      responseCache.set(cacheKey, {
-        data,
-        timestamp: Date.now(),
-      });
+      responseCache.set(cacheKey, { data, timestamp: Date.now() });
     }
 
     return data;
+  })();
+
+  if (inflightKey) inflightRequests.set(inflightKey, run);
+
+  try {
+    return await run;
   } finally {
-    inflight.delete(ctrl);
+    inflightControllers.delete(ctrl);
+    if (inflightKey) inflightRequests.delete(inflightKey);
   }
 }
 
@@ -229,7 +247,7 @@ export function clearCache() {
   responseCache.clear();
 }
 
-/** Helper: combinar AbortSignals (Chrome moderno). */
+/** Helper: combinar AbortSignals. */
 function anySignal(signals) {
   const controller = new AbortController();
   const onAbort = () => controller.abort();
@@ -244,6 +262,43 @@ function anySignal(signals) {
   return controller.signal;
 }
 
-function buildCacheKey(path, method, body) {
-  return `${method}:${path}:${body ? JSON.stringify(body) : ""}`;
+function buildCacheKey(pathOrUrl, method, body) {
+  return `${method}:${pathOrUrl}:${body ? JSON.stringify(body) : ""}`;
+}
+
+async function safeJson(res) {
+  const ct = res.headers.get("content-type") || "";
+  if (!ct.toLowerCase().includes("application/json")) {
+    const text = await res.text().catch(() => "");
+    return text ? { message: text } : null;
+  }
+  return res.json().catch(() => null);
+}
+
+// =========================
+// Expiración (auto-refresh)
+// =========================
+const AUTH_EXP_AT_KEY = "auth_exp_at";
+
+export function getAuthExpiryEpochMs() {
+  const raw = localStorage.getItem(AUTH_EXP_AT_KEY);
+  const n = raw ? Number(raw) : 0;
+  return Number.isFinite(n) ? n : 0;
+}
+
+export function setAuthExpiry(tiempoExpValue) {
+  const ms = normalizeTiempoExpToMs(tiempoExpValue);
+  if (!ms) return;
+  const expAt = Date.now() + ms;
+  localStorage.setItem(AUTH_EXP_AT_KEY, String(expAt));
+}
+
+export function clearAuthExpiry() {
+  localStorage.removeItem(AUTH_EXP_AT_KEY);
+}
+
+function normalizeTiempoExpToMs(v) {
+  const n = Number(v);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return n * 60 * 1000;
 }
