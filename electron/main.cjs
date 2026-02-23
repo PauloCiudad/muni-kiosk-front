@@ -1,5 +1,6 @@
 const { app, BrowserWindow } = require("electron");
 const path = require("path");
+const { pathToFileURL } = require("url");
 
 const isDev = !app.isPackaged;
 
@@ -18,9 +19,16 @@ function createWindow() {
     win.loadURL("http://localhost:5173");
     win.webContents.openDevTools();
   } else {
-    // Vite build -> dist/index.html
-    win.loadFile(path.join(__dirname, "../dist/index.html"));
+    const indexHtml = path.join(__dirname, "..", "dist", "index.html");
+    const url = pathToFileURL(indexHtml).toString();
+
+    // Con HashRouter, arrancamos siempre en "#/".
+    win.loadURL(`${url}#/`);
   }
+
+  win.webContents.on("did-fail-load", (_e, code, desc, validatedURL) => {
+    console.error("did-fail-load", { code, desc, validatedURL });
+  });
 }
 
 app.whenReady().then(() => {
