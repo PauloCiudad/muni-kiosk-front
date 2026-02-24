@@ -33,6 +33,9 @@ export default function Checkout_pdf() {
 
   const [confirmClear, setConfirmClear] = useState(false);
   const [confirmBuy, setConfirmBuy] = useState(false);
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const total = useMemo(
     () => items.reduce((acc, x) => acc + Number(x.amount || 0), 0),
@@ -49,13 +52,62 @@ export default function Checkout_pdf() {
   }, [items]);
 
   async function handleComprar() {
-    setConfirmBuy(false);
-
     if (!items.length) return;
+    if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+      alert("Ingrese un correo válido");
+      return;
+    }
 
-    // Aquí luego conectas el endpoint real de "generar orden" o "pagar"
-    // Ejemplo: navigate("/pago", { state: { items } })
-    alert(`Comprar: ${items.length} ítem(s) - Total: ${formatPEN(total)}`);
+    try {
+      setLoading(true);
+
+      // 1️⃣ Generar PDF desde Electron
+      const pdfBase64 = await window.desktop.generateConsultaPdf({
+        meta: {
+          fecha: new Date().toLocaleString(),
+        },
+        items: items.map((it) => ({
+          concepto: it.title,
+          monto: it.amount,
+        })),
+      });
+
+      // 2️⃣ Enviar al backend
+      const response = await fetch("http://localhost:4000/api/consultas/enviar-pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          subject: "Consultas en Línea - Municipalidad",
+          filename: "consulta.pdf",
+          pdfBase64,
+          meta: {
+            fecha: new Date().toLocaleString(),
+          },
+          items: items.map((it) => ({
+            concepto: it.title,
+            monto: it.amount,
+        })),
+}),
+      });
+
+      const data = await response.json();
+
+      if (!data.ok) {
+        throw new Error(data.error || "Error enviando correo");
+      }
+
+      // 3️⃣ Éxito
+      clear();
+      setSuccess(true);
+
+    } catch (error) {
+      console.error(error);
+      alert("Ocurrió un error enviando el PDF");
+    } finally {
+      setLoading(false);
+      setConfirmBuy(false);
+    }
   }
 
   return (
