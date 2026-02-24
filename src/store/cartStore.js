@@ -31,6 +31,12 @@ function persist(items) {
 export const useCartStore = create((set, get) => ({
   items: loadInitial(),
 
+  setItems: (items) =>
+    set(() => {
+      persist(items);
+      return { items };
+    }),
+
   addItem: (item) =>
     set((state) => {
       const exists = state.items.some((x) => x.key === item.key);
