@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState, useLayoutEffect, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { useCartStore } from "../store/cartStore";
 import {
   BiArrowBack,
   BiHomeAlt2,
@@ -448,6 +449,8 @@ export default function Consultas() {
 
   const [confirmSalir, setConfirmSalir] = useState(false);
 
+  const setItems = useCartStore((s) => s.setItems);
+
   // ===== DATA REAL =====
   const [predialRows, setPredialRows] = useState([]);
   const [vehicularRows, setVehicularRows] = useState([]);
@@ -760,29 +763,52 @@ export default function Consultas() {
     return items;
   }
 
+  function buildTitle(item) {
+    switch (item.service) {
+      case "predial":
+        return `Predial ${item.anio} - Periodo ${item.periodo}`;
+      case "vehicular":
+        return `Vehicular ${item.placa} - ${item.periodo}`;
+      case "arbitrios":
+        return `Arbitrios ${item.anio} - Periodo ${item.periodo}`;
+      case "transito":
+        return `Infracción ${item.nroInf}`;
+      default:
+        return "Concepto";
+    }
+  }
+
+  function buildMeta(item) {
+    const meta = {};
+
+    if (item.anio) meta.Año = item.anio;
+    if (item.periodo) meta.Periodo = item.periodo;
+    if (item.placa) meta.Placa = item.placa;
+    if (item.codigoUso) meta["Código Uso"] = item.codigoUso;
+    if (item.fecInf) meta["Fec. Inf."] = item.fecInf;
+
+    return meta;
+  }
+
   function goToCart() {
     safePlayClick();
 
     const cart = buildCartItems();
-    const meta = {
-      nroDoc,
-      tipoDocLabel,
-      contribuyente: {
-        codigo: activeContrib?.codigo || "",
-        admCodigo: activeContrib?.admCodigo || "",
-        nombre: activeContrib?.nombre || "",
-        direccion: activeContrib?.direccion || "",
-        tipoPersona: activeContrib?.tipoPersona || "",
-      },
-      subtotalSeleccionado,
-      selectedCount,
-    };
 
-    localStorage.setItem("cart_items", JSON.stringify(cart));
-    localStorage.setItem("cart_meta", JSON.stringify(meta));
+    if (!cart.length) return;
 
-    // Mantengo tu ruta tal cual
-    navigate("/Checkout_pdf", { state: { cart, meta } });
+    // Adaptamos el formato al que usa Checkout_pdf
+    const formatted = cart.map((item) => ({
+      key: `${item.service}-${item.id}`,
+      service: item.service,
+      title: buildTitle(item),
+      amount: item.total ?? item.deuda ?? 0,
+      meta: buildMeta(item),
+    }));
+
+    setItems(formatted);
+
+    navigate("/Checkout_pdf");
   }
   // ========= FIN (CARRITO) =========
 
