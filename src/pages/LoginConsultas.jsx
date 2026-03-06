@@ -5,6 +5,7 @@ import { BiArrowBack, BiLogInCircle } from "react-icons/bi";
 import logo from "../assets/logos_juntos.png";
 import { login } from "../services/authService";
 import { buscarContribuyentes } from "../services/impuestosService";
+import { useConsultasStore } from "../store/consultasStore";
 
 const container = {
   hidden: { opacity: 0 },
@@ -122,7 +123,8 @@ export default function Loginconsultas() {
       if (!Array.isArray(contribuyentes) || contribuyentes.length === 0) {
         throw new Error("No se encontraron contribuyentes para este documento.");
       }
-
+      
+      
       // manda a EstadoCuenta (llaves que EstadoCuenta YA espera)
       navigate("/Consultas", {
         state: {
