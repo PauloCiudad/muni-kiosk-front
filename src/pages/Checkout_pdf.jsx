@@ -33,7 +33,22 @@ export default function Checkout_pdf() {
 
   const [confirmClear, setConfirmClear] = useState(false);
   const [confirmBuy, setConfirmBuy] = useState(false);
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(() => {
+    try {
+      const persona = JSON.parse(localStorage.getItem('persona') || '{}');
+      return persona.correoElectronico || persona.correo || '';
+    } catch {
+      return '';
+    }
+  });
+  const nroDoc = useMemo(() => {
+    try {
+      const persona = JSON.parse(localStorage.getItem('persona') || '{}');
+      return persona.nroDni || persona.documento || '';
+    } catch {
+      return '';
+    }
+  }, []);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
@@ -133,6 +148,11 @@ export default function Checkout_pdf() {
           <div className="text-center">
             <h1 className="text-5xl md:text-6xl font-extrabold">Envío a Correo</h1>
             <p className="text-[#0F70B3] text-xl md:text-2xl mt-2">Revise los conceptos seleccionados</p>
+            {nroDoc && (
+              <p className="text-[#0F70B3] text-lg md:text-xl mt-1">
+                Documento: <span className="font-bold">{nroDoc}</span>
+              </p>
+            )}
           </div>
         </motion.header>
 
@@ -345,9 +365,17 @@ export default function Checkout_pdf() {
             >
               <div className="flex items-start justify-between gap-6">
                 <div>
-                  <div className="text-slate-900 text-4xl font-extrabold">Confirmar compra</div>
+                  <div className="text-slate-900 text-4xl font-extrabold">Confirmar envío</div>
                   <div className="mt-3 text-slate-600 text-2xl">
                     Total a pagar: <span className="font-extrabold">{formatPEN(total)}</span>
+                  </div>
+                  {nroDoc && (
+                    <div className="mt-2 text-slate-600 text-xl">
+                      Documento: <span className="font-bold">{nroDoc}</span>
+                    </div>
+                  )}
+                  <div className="mt-2 text-slate-600 text-xl">
+                    Se enviará a: <span className="font-bold">{email}</span>
                   </div>
                 </div>
                 <button
