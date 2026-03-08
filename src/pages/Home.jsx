@@ -98,6 +98,10 @@ function PhotoTile() {
   );
 }
 
+// Función Web 1: Display principal del kiosko
+// Muestra el logo, título y opciones principales
+// Permite navegar a las secciones de búsqueda, pagos y consultas
+// En un futuro pueden incluir más servicios o información relevante
 export default function Home() {
   const navigate = useNavigate();
 
