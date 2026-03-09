@@ -17,17 +17,15 @@ function persist(items) {
   } catch {}
 }
 
-/**
- * Estructura de item:
- * {
- *   key: "predial|<id>" (único),
- *   service: "predial" | "vehicular" | "arbitrios" | "transito",
- *   id: "<rowId>",
- *   title: "Impuesto Predial" ...,
- *   meta: { ...campos },
- *   amount: number
- * }
- */
+// Función de Estado 2: Store global del carrito para consultas
+// Persiste los ítems seleccionados en localStorage
+// Métodos:
+//   setItems(items) - reemplaza todo el carrito
+//   addItem(item) - agrega un ítem si no existe (por key)
+//   removeItem(key) - elimina un ítem
+//   clear() - vacía el carrito
+//   count() - número de ítems
+//   total() - suma de montos
 export const useCartStore = create((set, get) => ({
   items: loadInitial(),
 

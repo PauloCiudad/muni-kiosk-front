@@ -3,6 +3,9 @@ import nodemailer from "nodemailer";
 
 const router = express.Router();
 
+// Función de Backend 1: Endpoint POST /consultas/enviar-pdf
+// Recibe email, pdfBase64 y metadatos, envía el correo con nodemailer
+// Retorna { ok: true, messageId } o error
 router.post("/consultas/enviar-pdf", async (req, res) => {
   try {
     const { email, subject, filename, pdfBase64, meta, items } = req.body;

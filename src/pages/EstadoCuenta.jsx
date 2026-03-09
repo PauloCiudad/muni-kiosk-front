@@ -404,6 +404,10 @@ function ContribuyenteTabsBrowser({ items, activeIndex, onChange }) {
   );
 }
 
+// Función Web 5: Muestra el estado de cuenta del contribuyente para pagos
+// Carga deudas de predial, vehicular, arbitrios e infracciones
+// Permite seleccionar conceptos (con reglas de año más antiguo)
+// Botón "Ir al carrito" (actualmente sin implementación completa)
 export default function EstadoCuenta() {
   const navigate = useNavigate();
   const location = useLocation();

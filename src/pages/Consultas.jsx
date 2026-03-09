@@ -402,6 +402,9 @@ function ContribuyenteTabsBrowser({ items, activeIndex, onChange }) {
   );
 }
 
+// Función Web 6: Muestra el estado de cuenta del contribuyente para consultas
+// Similar a EstadoCuenta pero con integración al store del carrito
+// Permite seleccionar conceptos y navegar a Checkout_pdf para enviar por correo
 export default function Consultas() {
   const navigate = useNavigate();
   const location = useLocation();
