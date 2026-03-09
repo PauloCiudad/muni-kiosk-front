@@ -17,8 +17,8 @@
     "appId": "com.mpa.pagos",
     "productName": "PagosEnLinea",
     "files": [
-      "dist/**",
-      "electron/**",
+      "dist/**/*",
+      "electron/**/*",
       "package.json"
     ],
     "directories": {
