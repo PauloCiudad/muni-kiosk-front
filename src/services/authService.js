@@ -35,6 +35,9 @@ function scheduleRefreshFromExpiry({ skewMs = 30_000 } = {}) {
   }, ms);
 }
 
+// Función de Consulta 8: Autentica al usuario con DNI, correo y celular
+// Envía credenciales a /PagosWebLogin/login_toten
+// Guarda tokens y datos de persona en localStorage, programa auto-refresh
 export async function login(payload) {
   const data = await apiRequest("/PagosWebLogin/login_toten", {
     method: "POST",
@@ -63,6 +66,7 @@ export async function login(payload) {
   return { raw: data, token, refreshToken, tiempoExp, persona: payloadResp?.persona ?? null };
 }
 
+// Función de Consulta 9: Cierra sesión: limpia tokens, cancela peticiones, vacía caché y carrito
 export function logout() {
   clearRefreshTimer();
   abortAllRequests();
@@ -80,9 +84,8 @@ export function logout() {
   } catch {}
 }
 
-/**
- * Llamar 1 vez al iniciar la app para rearmar el auto-refresh si ya hay sesión.
- */
+// Función de Consulta 10: Inicia el temporizador de auto-refresh basado en la expiración guardada
+// Debe llamarse una vez al iniciar la app si hay sesión activa
 export function initAuthAutoRefresh() {
   scheduleRefreshFromExpiry();
 }

@@ -14,6 +14,10 @@ const itemUp = {
   show: { opacity: 1, y: 0 },
 };
 
+// Función Web 2: Formulario para búsqueda de expedientes
+// Permite ingresar número de expediente y año
+// Actualmente solo es una interfaz visual sin funcionalidad de consulta real
+// En el futuro se conectará con el backend para mostrar resultados
 export default function BusquedaExpedientes() {
   const navigate = useNavigate();
 

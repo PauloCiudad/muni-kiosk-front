@@ -41,6 +41,8 @@ const responseCache = new Map();
 // Tiempo de vida del cache (ej: 2 minutos)
 const CACHE_TTL = 1000 * 60 * 2;
 
+// Función de Consulta 1: Cancela todas las peticiones en curso 
+// (ej: al hacer logout o cuando expira sesión)
 export function abortAllRequests() {
   for (const ctrl of inflightControllers) ctrl.abort();
   inflightControllers.clear();
@@ -52,7 +54,9 @@ export function abortAllRequests() {
  *  ========================= */
 let refreshPromise = null;
 
-// Exportado para auto-refresh (timer) desde authService
+// Función de Consulta 2: Renueva el token de acceso usando el refresh token
+// Se ejecuta automáticamente cuando una petición falla por token expirado
+// También puede llamarse manualmente para refresco programado
 export async function refreshAccessToken() {
   if (refreshPromise) return refreshPromise;
 
@@ -119,6 +123,10 @@ function looksLikeExpiredToken(data) {
   return data?.status === "false" && (msg.includes("token") && (msg.includes("expir") || msg.includes("venc")));
 }
 
+// Función de Consulta 3: Realiza una petición HTTP con manejo de autenticación, caché y reintentos
+// Soporta refresh de token automático en caso de 401/403
+// Parámetros: path, options (method, body, auth, signal, useCache, dedupe)
+// Retorna: datos de la respuesta (parseados como JSON)
 export async function apiRequest(
   path,
   {
@@ -243,6 +251,7 @@ export async function apiRequest(
   }
 }
 
+// Función de Consulta 4: Limpia la caché de respuestas almacenada en memoria
 export function clearCache() {
   responseCache.clear();
 }
@@ -280,12 +289,14 @@ async function safeJson(res) {
 // =========================
 const AUTH_EXP_AT_KEY = "auth_exp_at";
 
+// Función de Consulta 5: Obtiene la marca de tiempo (epoch ms) de expiración del token almacenada
 export function getAuthExpiryEpochMs() {
   const raw = localStorage.getItem(AUTH_EXP_AT_KEY);
   const n = raw ? Number(raw) : 0;
   return Number.isFinite(n) ? n : 0;
 }
 
+// Función de Consulta 6: Almacena la expiración del token (convierte tiempoExp a ms y guarda)
 export function setAuthExpiry(tiempoExpValue) {
   const ms = normalizeTiempoExpToMs(tiempoExpValue);
   if (!ms) return;
@@ -293,6 +304,7 @@ export function setAuthExpiry(tiempoExpValue) {
   localStorage.setItem(AUTH_EXP_AT_KEY, String(expAt));
 }
 
+// Función de Consulta 7: Elimina la expiración del token del almacenamiento
 export function clearAuthExpiry() {
   localStorage.removeItem(AUTH_EXP_AT_KEY);
 }

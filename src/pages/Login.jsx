@@ -33,6 +33,10 @@ function onlyDigits(value) {
   return value.replace(/\D/g, "");
 }
 
+// Función Web 3: Pantalla de inicio de sesión para pagos en línea
+// Recibe tipo de documento, número, correo y celular
+// Valida los datos y llama al servicio de autenticación
+// Si es exitoso, obtiene los contribuyentes y navega a EstadoCuenta
 export default function Login() {
   const navigate = useNavigate();
 

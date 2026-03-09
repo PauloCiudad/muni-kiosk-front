@@ -17,6 +17,11 @@ function readPersona() {
   }
 }
 
+// Función de Estado 1: Store global de autenticación
+// Mantiene token, refreshToken y persona en memoria y sincronizados con localStorage
+// Métodos:
+//   setSession({ token, refreshToken, persona }) - actualiza sesión
+//   clearSession() - cierra sesión y limpia todo
 export const useAuthStore = create((set, get) => ({
   token: localStorage.getItem(STORAGE_KEYS.token) || "",
   refreshToken: localStorage.getItem(STORAGE_KEYS.refresh) || "",

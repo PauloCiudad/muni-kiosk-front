@@ -33,6 +33,9 @@ function onlyDigits(value) {
   return value.replace(/\D/g, "");
 }
 
+// Función Web 4: Pantalla de inicio de sesión para consultas en línea
+// Similar a Login.jsx pero redirige a Consultas en lugar de EstadoCuenta
+// Se mantiene separado para diferenciar flujos de pago y consulta
 export default function Loginconsultas() {
   const navigate = useNavigate();
 

@@ -24,6 +24,10 @@ function Pill({ children }) {
   );
 }
 
+// Función Web 7: Carrito y envío de PDF por correo
+// Muestra los ítems seleccionados, permite eliminarlos
+// Genera un PDF mediante función de Electron y lo envía al backend para correo
+// Usa el store del carrito para persistencia
 export default function Checkout_pdf() {
   const navigate = useNavigate();
 
