@@ -30,7 +30,10 @@ function onlyDigits(value) {
 
 
 // Función Web 2: Formulario para búsqueda de expedientes
-// Permite ingresar número de expediente y año
+// Permite ingresar número de expediente y año para consultar en la API externa
+// Valida que el número tenga hasta 9 dígitos y lo completa automáticamente con ceros a la izquierda
+// Muestra estado de carga, errores y el resultado en una tabla detallada
+// En el futuro podría soportar paginación o múltiples resultados
 export default function BusquedaExpedientes() {
   const navigate = useNavigate();
   const abortRef = useRef(null);
