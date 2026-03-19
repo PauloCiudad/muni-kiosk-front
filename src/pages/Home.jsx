@@ -178,7 +178,8 @@ export default function Home() {
           variants={itemUp}
           className="py-6 text-center text-slate-400 text-base bg-white border-t"
         >
-          Municipalidad Provincial de Arequipa
+          Municipalidad Provincial de Arequipa <br/>
+          Hecho por PauloCiudad
         </motion.footer>
       </div>
     </motion.div>
