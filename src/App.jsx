@@ -1,4 +1,4 @@
-import { BrowserRouter, HashRouter, Routes, Route } from "react-router-dom";
+import { HashRouter, Routes, Route } from "react-router-dom";
 import { useEffect } from "react";
 import { initAuthAutoRefresh } from "./services/authService";
 
@@ -15,10 +15,8 @@ export default function App() {
     initAuthAutoRefresh();
   }, []);
 
-  const Router = window?.desktop ? HashRouter : BrowserRouter;
-
   return (
-    <Router>
+    <HashRouter>  {/* Siempre usa HashRouter en producción */}
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/busqueda-expedientes" element={<BusquedaExpedientes />} />
@@ -28,6 +26,6 @@ export default function App() {
         <Route path="/LoginConsultas" element={<Loginconsultas />} />
         <Route path="/checkout_pdf" element={<Checkout_pdf />} />
       </Routes>
-    </Router>
+    </HashRouter>
   );
 }

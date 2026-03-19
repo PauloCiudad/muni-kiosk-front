@@ -1,7 +1,9 @@
-const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const BASE_URL =
+  window?.desktop?.config?.API_URL ||
+  import.meta.env.VITE_API_BASE_URL;
 
 function joinUrl(base, path) {
-  if (!base) throw new Error("VITE_API_BASE_URL no está definido (revisa .env)");
+  if (!base) throw new Error("No se encontró API_URL en config.json ni VITE_API_BASE_URL en .env");
   return `${base.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
 }
 
@@ -41,8 +43,7 @@ const responseCache = new Map();
 // Tiempo de vida del cache (ej: 2 minutos)
 const CACHE_TTL = 1000 * 60 * 2;
 
-// Función de Consulta 1: Cancela todas las peticiones en curso 
-// (ej: al hacer logout o cuando expira sesión)
+// Función de Consulta 1: Cancela todas las peticiones en curso
 export function abortAllRequests() {
   for (const ctrl of inflightControllers) ctrl.abort();
   inflightControllers.clear();
@@ -55,8 +56,6 @@ export function abortAllRequests() {
 let refreshPromise = null;
 
 // Función de Consulta 2: Renueva el token de acceso usando el refresh token
-// Se ejecuta automáticamente cuando una petición falla por token expirado
-// También puede llamarse manualmente para refresco programado
 export async function refreshAccessToken() {
   if (refreshPromise) return refreshPromise;
 
@@ -83,8 +82,6 @@ export async function refreshAccessToken() {
       throw new Error(msg);
     }
 
-    // Algunos backends devuelven directamente { token, refreshToken, tiempoExp }
-    // Otros devuelven { dato: { token, refreshToken, tiempoExp } }
     const payload = data?.dato ?? data;
 
     const newToken = payload?.token;
@@ -124,9 +121,6 @@ function looksLikeExpiredToken(data) {
 }
 
 // Función de Consulta 3: Realiza una petición HTTP con manejo de autenticación, caché y reintentos
-// Soporta refresh de token automático en caso de 401/403
-// Parámetros: path, options (method, body, auth, signal, useCache, dedupe)
-// Retorna: datos de la respuesta (parseados como JSON)
 export async function apiRequest(
   path,
   {
@@ -170,14 +164,12 @@ export async function apiRequest(
     signal: combinedSignal,
   };
 
-  // Dedupe: si la misma request ya está en vuelo, reutilizar promesa.
   const inflightKey = dedupe ? buildCacheKey(url, method, body) : null;
   if (inflightKey && inflightRequests.has(inflightKey)) {
     return inflightRequests.get(inflightKey);
   }
 
   const run = (async () => {
-    // 1er intento
     let { res, data } = await doFetch(url, requestInit);
 
     if (!res.ok) {
@@ -206,7 +198,6 @@ export async function apiRequest(
       }
     }
 
-    // Manejo “API style”
     if (data && data.status === "false") {
       if (auth && looksLikeExpiredToken(data)) {
         await refreshAccessToken();
@@ -260,6 +251,7 @@ export function clearCache() {
 function anySignal(signals) {
   const controller = new AbortController();
   const onAbort = () => controller.abort();
+
   for (const s of signals) {
     if (!s) continue;
     if (s.aborted) {
@@ -268,6 +260,7 @@ function anySignal(signals) {
     }
     s.addEventListener("abort", onAbort, { once: true });
   }
+
   return controller.signal;
 }
 
@@ -289,14 +282,14 @@ async function safeJson(res) {
 // =========================
 const AUTH_EXP_AT_KEY = "auth_exp_at";
 
-// Función de Consulta 5: Obtiene la marca de tiempo (epoch ms) de expiración del token almacenada
+// Función de Consulta 5: Obtiene la marca de tiempo de expiración del token
 export function getAuthExpiryEpochMs() {
   const raw = localStorage.getItem(AUTH_EXP_AT_KEY);
   const n = raw ? Number(raw) : 0;
   return Number.isFinite(n) ? n : 0;
 }
 
-// Función de Consulta 6: Almacena la expiración del token (convierte tiempoExp a ms y guarda)
+// Función de Consulta 6: Almacena la expiración del token
 export function setAuthExpiry(tiempoExpValue) {
   const ms = normalizeTiempoExpToMs(tiempoExpValue);
   if (!ms) return;
@@ -312,5 +305,7 @@ export function clearAuthExpiry() {
 function normalizeTiempoExpToMs(v) {
   const n = Number(v);
   if (!Number.isFinite(n) || n <= 0) return 0;
+
+  // Tu backend manda tiempoExp en minutos
   return n * 60 * 1000;
 }
