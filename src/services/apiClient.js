@@ -1,6 +1,5 @@
 const BASE_URL =
-  window?.desktop?.config?.API_URL ||
-  import.meta.env.VITE_API_BASE_URL;
+  "http://172.16.114.104:8093";
 
 function joinUrl(base, path) {
   if (!base) throw new Error("No se encontró API_URL en config.json ni VITE_API_BASE_URL en .env");

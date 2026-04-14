@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import logo from "../assets/logos_juntos.png";
 import {
   BiSearchAlt,
   BiArrowBack,
   BiLoaderAlt,
   BiXCircle,
+  BiX,
 } from "react-icons/bi";
 
 /* Animaciones */
@@ -22,7 +23,7 @@ const itemUp = {
 
 const API_BASE =
   import.meta.env.VITE_API_EXPEDIENTES_URL ||
-  "http://172.16.1.13:8083/api_std_prueba";
+  "http://172.16.1.13:8093/api_siat_prueba";
 
 function onlyDigits(value) {
   return String(value || "").replace(/\D/g, "");
@@ -44,6 +45,7 @@ export default function BusquedaExpedientes() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [resultado, setResultado] = useState(null);
+  const [showNoRecordsModal, setShowNoRecordsModal] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -104,7 +106,8 @@ export default function BusquedaExpedientes() {
       const data = await response.json();
 
       if (!Array.isArray(data) || data.length === 0) {
-        setError("No se encontraron resultados para el expediente consultado.");
+        setError("");
+        setShowNoRecordsModal(true);
         return;
       }
 
@@ -323,6 +326,57 @@ export default function BusquedaExpedientes() {
           </motion.div>
         </div>
       </main>
+
+      <AnimatePresence>
+        {showNoRecordsModal && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-8"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            role="dialog"
+            aria-modal="true"
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.98 }}
+              transition={{ type: "spring", stiffness: 260, damping: 22 }}
+              className="w-full max-w-3xl bg-white rounded-none shadow-2xl border border-slate-200 p-10"
+            >
+              <div className="flex items-start justify-between gap-6">
+                <div>
+                  <div className="text-slate-900 text-4xl font-extrabold">No hay registros</div>
+                  <div className="mt-3 text-slate-600 text-2xl">
+                    No se encontraron registros para el expediente consultado.
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowNoRecordsModal(false)}
+                  className="w-16 h-16 bg-slate-100 hover:bg-slate-200 text-slate-800 text-4xl rounded-none border border-slate-200 flex items-center justify-center active:scale-[0.95]"
+                  aria-label="Cerrar"
+                >
+                  <BiX />
+                </button>
+              </div>
+
+              <div className="mt-10 text-right">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowNoRecordsModal(false);
+                    navigate("/");
+                  }}
+                  className="inline-flex items-center justify-center rounded-none bg-[#0B6FB3] px-10 py-5 text-white text-2xl font-extrabold hover:bg-[#094b76] active:scale-[0.97]"
+                >
+                  OK
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* FOOTER */}
       <motion.footer

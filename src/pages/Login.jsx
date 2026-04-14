@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { BiArrowBack, BiLogInCircle } from "react-icons/bi";
+import { AnimatePresence, motion } from "framer-motion";
+import { BiArrowBack, BiLogInCircle, BiX } from "react-icons/bi";
 import logo from "../assets/logos_juntos.png";
 import { login } from "../services/authService";
 import { buscarContribuyentes } from "../services/impuestosService";
@@ -45,6 +45,7 @@ export default function Login() {
   const [correo, setCorreo] = useState("");
   const [celular, setCelular] = useState("");
   const [error, setError] = useState("");
+  const [showNoRecordsModal, setShowNoRecordsModal] = useState(false);
 
   const [loading, setLoading] = useState(false);
 
@@ -65,10 +66,6 @@ export default function Login() {
     if (!tipoDoc) {
       setLoading(false);
       return setError("Seleccione el tipo de documento.");
-    }
-    if (tipoDoc !== "1") {
-      setLoading(false);
-      return setError("Por el momento el login solo está habilitado con DNI.");
     }
     if (!nroDocFinal) {
       setLoading(false);
@@ -124,7 +121,9 @@ export default function Login() {
       const contribuyentes = contribRes?.dato ?? [];
 
       if (!Array.isArray(contribuyentes) || contribuyentes.length === 0) {
-        throw new Error("No se encontraron contribuyentes para este documento.");
+        setError("");
+        setShowNoRecordsModal(true);
+        return;
       }
 
       // manda a EstadoCuenta (llaves que EstadoCuenta YA espera)
@@ -344,6 +343,57 @@ export default function Login() {
         </motion.main>
 
         {/* FOOTER */}
+        <AnimatePresence>
+          {showNoRecordsModal && (
+            <motion.div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-8"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              role="dialog"
+              aria-modal="true"
+            >
+              <motion.div
+                initial={{ opacity: 0, y: 20, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 20, scale: 0.98 }}
+                transition={{ type: "spring", stiffness: 260, damping: 22 }}
+                className="w-full max-w-3xl bg-white rounded-none shadow-2xl border border-slate-200 p-10"
+              >
+                <div className="flex items-start justify-between gap-6">
+                  <div>
+                    <div className="text-slate-900 text-4xl font-extrabold">No hay registros</div>
+                    <div className="mt-3 text-slate-600 text-2xl">
+                      No se encontraron registros para el documento ingresado.
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowNoRecordsModal(false)}
+                    className="w-16 h-16 bg-slate-100 hover:bg-slate-200 text-slate-800 text-4xl rounded-none border border-slate-200 flex items-center justify-center active:scale-[0.95]"
+                    aria-label="Cerrar"
+                  >
+                    <BiX />
+                  </button>
+                </div>
+
+                <div className="mt-10 text-right">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowNoRecordsModal(false);
+                      navigate("/");
+                    }}
+                    className="inline-flex items-center justify-center rounded-none bg-[#0B6FB3] px-10 py-5 text-white text-2xl font-extrabold hover:bg-[#094b76] active:scale-[0.97]"
+                  >
+                    OK
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <motion.footer
           variants={itemUp}
           className="py-6 text-center text-slate-400 text-base bg-white border-t"
